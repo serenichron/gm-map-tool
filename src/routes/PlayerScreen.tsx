@@ -264,6 +264,17 @@ export function PlayerScreen() {
               className="pointer-events-none absolute left-0 top-0"
               style={{ width: pub.width, height: pub.height }}
             />
+            {/* faint second pass OVER the fog: shows the hex structure through the
+                fog (just thin lines) without revealing the terrain behind it */}
+            {pub.grid?.enabled && (
+              <HexGrid
+                width={pub.width}
+                height={pub.height}
+                size={pub.grid.size}
+                color="rgba(232,183,94,0.16)"
+                color2="rgba(110,74,28,0.16)"
+              />
+            )}
             <div className="pointer-events-none absolute left-0 top-0" style={{ width: pub.width, height: pub.height }}>
               {pins.map((p) => (
                 <PinMarker

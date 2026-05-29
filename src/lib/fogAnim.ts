@@ -29,9 +29,9 @@ function mulberry32(seed: number): () => number {
 // wisps (mostly thin, with denser veins) so the fog looks translucent and soft.
 function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
   const rng = mulberry32(seed)
-  // a fuller spread of frequencies → big masses with billowing detail inside them
+  // weighted toward finer frequencies → smaller, more numerous cloud puffs
   const periods = [4, 8, 16, 32, 64] // all share factors with 512 → seamless
-  const weights = [0.3, 0.26, 0.21, 0.14, 0.09]
+  const weights = [0.22, 0.24, 0.23, 0.18, 0.13]
   const grids = periods.map((p) => {
     const g = new Float32Array(p * p)
     for (let i = 0; i < g.length; i++) g[i] = rng()
@@ -143,9 +143,9 @@ export class FogHaze {
 
     // drifting cloud layers — opposite directions + a big slow roll, so the forms
     // evolve and the texture clearly moves
-    this.layer(ax, t * 0.006, t * 0.004, 2.0, 0.7)
-    this.layer(ax, -t * 0.0045, t * 0.006, 2.8, 0.55)
-    this.layer(ax, t * 0.0024, -t * 0.0019, 4.2, 0.34)
+    this.layer(ax, t * 0.006, t * 0.004, 1.25, 0.7)
+    this.layer(ax, -t * 0.0045, t * 0.006, 1.8, 0.55)
+    this.layer(ax, t * 0.0024, -t * 0.0019, 2.7, 0.34)
 
     // keep it only where fog remains (mask already softened by the caller)
     ax.globalCompositeOperation = 'destination-in'
