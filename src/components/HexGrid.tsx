@@ -15,11 +15,14 @@ function drawHexGrid(
   if (r < 6) return
   const colW = Math.sqrt(3) * r // horizontal centre spacing
   const rowH = 1.5 * r // vertical centre spacing
-  // gold -> dark -> gold sheen across the grid (a faint golden shine)
+  // repeating gold -> dark -> gold sheen across the grid (golden shine). Smaller
+  // bands (~repeat every ~280px) so the shimmer recurs across the map.
   const grad = ctx.createLinearGradient(0, 0, w, h)
-  grad.addColorStop(0, color)
-  grad.addColorStop(0.5, color2)
-  grad.addColorStop(1, color)
+  const cycles = Math.max(3, Math.round(Math.hypot(w, h) / 280))
+  for (let i = 0; i <= cycles; i++) {
+    grad.addColorStop(i / cycles, color)
+    if (i < cycles) grad.addColorStop((i + 0.5) / cycles, color2)
+  }
   ctx.strokeStyle = grad
   ctx.lineWidth = lineWidth
   ctx.globalAlpha = alpha
