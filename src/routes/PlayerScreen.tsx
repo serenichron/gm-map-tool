@@ -180,7 +180,7 @@ export function PlayerScreen() {
     const H = pub.height
     const blurR = Math.max(8, Math.round(Math.min(W, H) * 0.012))
     const shift = Math.max(14, Math.round(Math.min(W, H) * 0.022)) // shadow offset
-    const half = 0 // shadow-compensation shift disabled for now
+    const half = Math.round(shift / 4) // shadow-compensation shift (a quarter)
 
     // soft mask (UNSHIFTED): the fog shape, used to cast the drop shadow.
     const soft = softMask.current
