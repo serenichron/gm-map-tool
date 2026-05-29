@@ -82,9 +82,9 @@ export function HexGrid({
   height,
   size,
   angle = 0,
-  opacity = 1,
-  color = 'rgba(232,183,94,0.45)', // gold
-  color2 = 'rgba(153,112,51,0.45)', // dark gold (closer to the gold)
+  opacity = 1, // absolute line alpha (0–1)
+  color = 'rgb(232,183,94)', // gold
+  color2 = 'rgb(153,112,51)', // dark gold (closer to the gold)
   lineWidth = 2,
 }: {
   width: number

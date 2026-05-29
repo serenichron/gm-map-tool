@@ -159,6 +159,18 @@ export function PlayerScreen() {
                   }}
                   className="h-1 flex-1 cursor-pointer accent-teal"
                 />
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={playerGridOpacity}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.min(100, Math.round(+e.target.value) || 0))
+                    setPlayerGridOpacity(v)
+                    localStorage.setItem('player-grid-opacity', String(v))
+                  }}
+                  className="w-12 rounded-[6px] border border-line bg-[#0f0b06] px-1.5 py-0.5 text-right font-ui text-[12px] text-teal outline-none focus:border-teal"
+                />
               </div>
             </div>
           )}

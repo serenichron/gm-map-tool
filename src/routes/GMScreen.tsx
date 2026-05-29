@@ -1051,6 +1051,17 @@ function GMWorkspace() {
             className="h-1 w-16 cursor-pointer accent-gold"
             title="Grid line strength"
           />
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={gridOpacity}
+            onChange={(e) => {
+              setGridOpacity(Math.max(0, Math.min(100, Math.round(+e.target.value) || 0)))
+              scheduleSave()
+            }}
+            className="w-12 rounded-[6px] border border-line bg-[#0f0b06] px-1.5 py-0.5 text-right font-ui text-[12px] text-gold outline-none focus:border-ochre"
+          />
         </div>
       )}
         </>
@@ -1180,9 +1191,7 @@ function GMWorkspace() {
                     height={map.height}
                     size={gridSize}
                     angle={gridAngle}
-                    opacity={gridOpacity / 25}
-                    color="rgba(232,183,94,0.3)"
-                    color2="rgba(153,112,51,0.3)"
+                    opacity={Math.min(1, (gridOpacity / 100) * 1.8)}
                   />
                 )}
                 <div className="pointer-events-none absolute left-0 top-0" style={{ width: map.width, height: map.height }}>
