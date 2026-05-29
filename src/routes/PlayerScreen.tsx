@@ -54,15 +54,17 @@ export function PlayerScreen() {
       if (!alive || s.version <= lastVersion.current) return
       lastVersion.current = s.version
       const img = new Image()
-      img.onload = () => {
+      const finish = () => {
         if (!alive) return
         if (lastBlobUrl.current) URL.revokeObjectURL(lastBlobUrl.current)
         lastBlobUrl.current = s.imageUrl.startsWith('blob:') ? s.imageUrl : null
         setPins(s.pins)
         setPub({ version: s.version, width: s.width, height: s.height, src: s.imageUrl, fogOps: s.fogOps, grid: s.grid })
       }
+      img.onload = finish
       img.onerror = () => setError('Could not load the map image.')
       img.src = s.imageUrl
+      if (img.complete && img.naturalWidth > 0) finish()
     }
 
     ;(async () => {

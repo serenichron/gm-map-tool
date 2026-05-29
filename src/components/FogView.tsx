@@ -126,14 +126,17 @@ export function FogView({
     }
   }, [])
 
-  // (re)load the map image for the frost, then render
+  // (re)load the map image for the frost, then render. Handle already-cached
+  // images (onload may not fire for a complete image) — else the fog never draws.
   useEffect(() => {
     const img = new Image()
-    img.onload = () => {
+    const done = () => {
       mapImgRef.current = img
       renderFog()
     }
+    img.onload = done
     img.src = mapSrc
+    if (img.complete && img.naturalWidth > 0) done()
   }, [mapSrc, renderFog])
 
   // redraw when inputs change

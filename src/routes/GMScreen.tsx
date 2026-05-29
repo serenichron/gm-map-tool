@@ -277,15 +277,48 @@ function GMWorkspace() {
         setSelectedId(null)
         setMap({ src: URL.createObjectURL(img), width: working.width, height: working.height })
       } else {
-        restoredOps.current = null
-        mapBlobRef.current = null
-        setPins([])
-        setGridOn(false)
-        setGridSize(37)
-        setSelectedId(null)
-        setMap(null)
+        // no local draft (new device / incognito): rebuild from the last
+        // published state in the cloud, if any, so maps follow the GM.
+        let hydrated = false
+        try {
+          const snap = await backendRef.current?.requestLatest()
+          if (snap && alive) {
+            const blob = await (await fetch(snap.imageUrl)).blob()
+            if (alive) {
+              const restoredPins = snap.pins.map((p) => ({ ...p, gmNote: '' }))
+              restoredOps.current = snap.fogOps
+              mapBlobRef.current = blob
+              setPins(restoredPins)
+              setGridOn(snap.grid?.enabled ?? false)
+              setGridSize(snap.grid?.size ?? 37)
+              setSelectedId(null)
+              setMap({ src: URL.createObjectURL(blob), width: snap.width, height: snap.height })
+              // cache locally so it loads instantly next time
+              void idbSet(imgKey(activeRoomId), blob)
+              void idbSet(workKey(activeRoomId), {
+                width: snap.width,
+                height: snap.height,
+                fogOps: snap.fogOps,
+                pins: restoredPins,
+                grid: snap.grid ?? null,
+              })
+              hydrated = true
+            }
+          }
+        } catch {
+          /* fall through to empty */
+        }
+        if (!hydrated && alive) {
+          restoredOps.current = null
+          mapBlobRef.current = null
+          setPins([])
+          setGridOn(false)
+          setGridSize(37)
+          setSelectedId(null)
+          setMap(null)
+        }
       }
-      setDirty(false)
+      if (alive) setDirty(false)
     })()
     return () => {
       alive = false
