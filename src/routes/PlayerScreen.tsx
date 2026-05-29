@@ -19,6 +19,7 @@ import {
 import { hasSupabase } from '../lib/supabase.ts'
 import { ensureSession } from '../lib/session.ts'
 import { getRoomByCode } from '../lib/rooms.ts'
+import { addRecentRoom } from '../lib/recent.ts'
 
 const tbtn =
   'inline-flex items-center justify-center rounded-[9px] border border-line bg-panel-2 px-3 py-2 font-ui text-[13px] font-medium text-bone transition hover:border-[#6a5232] hover:bg-[#352818]'
@@ -109,6 +110,7 @@ export function PlayerScreen() {
           setError('No room with that code.')
           return
         }
+        addRecentRoom({ code: room.join_code, name: room.name })
         backend = createSupabaseBackend(room.id)
       } else {
         backend = createLocalBackend()

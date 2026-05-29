@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RefreshButton } from '../components/RefreshButton.tsx'
+import { getRecentRooms, removeRecentRoom, type RecentRoom } from '../lib/recent.ts'
 
 /**
  * Entry screen. Run the fog as GM, or join a table with a room code.
@@ -8,10 +9,15 @@ import { RefreshButton } from '../components/RefreshButton.tsx'
 export function Launcher() {
   const navigate = useNavigate()
   const [code, setCode] = useState('')
+  const [recent, setRecent] = useState<RecentRoom[]>(() => getRecentRooms())
 
   const join = () => {
     const c = code.trim().toUpperCase()
     navigate(c ? `/room?c=${encodeURIComponent(c)}` : '/room')
+  }
+  const forget = (c: string) => {
+    removeRecentRoom(c)
+    setRecent(getRecentRooms())
   }
 
   return (
@@ -67,6 +73,37 @@ export function Launcher() {
               Join
             </button>
           </div>
+
+          {recent.length > 0 && (
+            <div className="mx-auto mt-4 max-w-[320px] text-left">
+              <div className="mb-1.5 font-ui text-[10px] uppercase tracking-[0.2em] text-bone-dim">
+                Recently joined
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {recent.map((r) => (
+                  <div
+                    key={r.code}
+                    className="group flex items-center gap-2 rounded-lg border border-line bg-panel-2 px-3 py-2 transition hover:border-teal-dim"
+                  >
+                    <button
+                      onClick={() => navigate(`/room?c=${encodeURIComponent(r.code)}`)}
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-ui text-[13px] text-bone">{r.name}</span>
+                      <span className="font-ui text-[12px] font-bold tracking-[0.14em] text-teal">{r.code}</span>
+                    </button>
+                    <button
+                      onClick={() => forget(r.code)}
+                      aria-label="Forget"
+                      className="flex-none text-bone-dim opacity-0 transition group-hover:opacity-100 hover:text-rust"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <p className="mt-6 font-ui text-xs leading-relaxed text-bone-dim">
             gud dey, traveller — the map waits beneath the dust.
