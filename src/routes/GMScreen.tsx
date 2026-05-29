@@ -603,15 +603,31 @@ function GMWorkspace() {
   // tools row (only with a map): mode picker · contextual options · utilities
   const toolbar = map ? (
     <>
-      {/* PRIMARY — what the pointer does */}
+      {/* PRIMARY — what the pointer does, grouped: navigate · fog brushes · pin · tiles */}
       <div className="flex items-center gap-0.5 rounded-[11px] border border-line bg-ink-2 p-1">
         {modeBtn('pan', 'pan', 'Pan', 'Pan / move (1)')}
+        <span className="mx-0.5 h-5 w-px bg-line/60" />
         {modeBtn('reveal', 'reveal', 'Reveal', 'Reveal fog (2)')}
         {modeBtn('semi', 'semi', 'Semi', 'Semi-reveal — torn glimpse (3)')}
         {modeBtn('hide', 'hide', 'Hide', 'Re-cover with fog (4)')}
+        <span className="mx-0.5 h-5 w-px bg-line/60" />
         {modeBtn('pin', 'pin', 'Pin', 'Place a pin (5)')}
+        <span className="mx-0.5 h-5 w-px bg-line/60" />
         {modeBtn('tile', 'tile', 'Tile', 'Hex tiles (6)')}
       </div>
+
+      {/* grid on/off — sits next to the tile control */}
+      <button
+        onClick={() => { setGridOn((v) => !v); scheduleSave() }}
+        title="Show / hide the hex grid"
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-[9px] border transition ${
+          gridOn
+            ? 'border-ochre bg-ochre/10 text-gold'
+            : 'border-line bg-panel-2 text-bone-dim hover:bg-[#352818] hover:text-bone'
+        }`}
+      >
+        <Icon name="hexes" />
+      </button>
 
       {/* CONTEXTUAL — options for the active tool */}
       {isBrush && (
@@ -723,15 +739,6 @@ function GMWorkspace() {
       <span className={vDivider} />
 
       <div className="flex items-center gap-1">
-        <button
-          onClick={() => { setGridOn((v) => !v); scheduleSave() }}
-          title="Toggle the hex grid"
-          className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition ${
-            gridOn ? 'bg-ochre/15 text-gold' : 'text-bone-dim hover:bg-[#352818] hover:text-bone'
-          }`}
-        >
-          <Icon name="grid" />
-        </button>
         <span className="min-w-[38px] text-center font-ui text-[11px] text-bone-dim">
           {Math.round(zoom * 100)}%
         </span>
@@ -777,7 +784,15 @@ function GMWorkspace() {
                 className="pointer-events-none absolute left-0 top-0"
                 style={{ width: map.width, height: map.height, opacity: GM_FOG_OPACITY }}
               />
-              {gridOn && <HexGrid width={map.width} height={map.height} size={gridSize} />}
+              {gridOn && (
+                <HexGrid
+                  width={map.width}
+                  height={map.height}
+                  size={gridSize}
+                  color="rgba(232,183,94,0.3)"
+                  color2="rgba(153,112,51,0.3)"
+                />
+              )}
               <div className="pointer-events-none absolute left-0 top-0" style={{ width: map.width, height: map.height }}>
                 {pins.map((p) => (
                   <PinMarker

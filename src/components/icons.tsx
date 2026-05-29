@@ -52,6 +52,13 @@ const PATHS: Record<string, JSX.Element> = {
       <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
     </>
   ),
+  hexes: (
+    <>
+      <path d="M12 9 L10 12.46 L6 12.46 L4 9 L6 5.54 L10 5.54 Z" />
+      <path d="M19 9 L17 12.46 L13 12.46 L11 9 L13 5.54 L17 5.54 Z" />
+      <path d="M15.5 15 L13.5 18.46 L9.5 18.46 L7.5 15 L9.5 11.54 L13.5 11.54 Z" />
+    </>
+  ),
   fit: <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />,
   copy: (
     <>
