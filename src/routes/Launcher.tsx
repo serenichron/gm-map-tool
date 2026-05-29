@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { RefreshButton } from '../components/RefreshButton.tsx'
 
 /**
  * Entry screen. Run the fog as GM, or join a table with a room code.
@@ -15,6 +16,9 @@ export function Launcher() {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4">
+      <div className="fixed right-3 top-3 z-40">
+        <RefreshButton />
+      </div>
       <div className="relative w-[min(560px,92vw)] overflow-hidden rounded-[18px] border border-line bg-gradient-to-b from-panel-2 to-panel p-10 text-center shadow-2xl">
         <div
           className="pointer-events-none absolute inset-0"
