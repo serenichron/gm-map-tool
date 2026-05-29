@@ -694,10 +694,28 @@ function GMWorkspace() {
       <span className={vDivider} />
 
       <div className="flex items-center gap-0.5">
-        <button className={utilBtn} onClick={() => { fogRef.current.fill('covered'); refreshUndo(); scheduleSave() }} title="Cover the whole map">
+        <button
+          className={utilBtn}
+          onClick={() => {
+            if (!window.confirm('Cover the whole map with fog?')) return
+            fogRef.current.fill('covered')
+            refreshUndo()
+            scheduleSave()
+          }}
+          title="Cover the whole map"
+        >
           <Icon name="coverAll" />
         </button>
-        <button className={utilBtn} onClick={() => { fogRef.current.fill('clear'); refreshUndo(); scheduleSave() }} title="Clear all fog">
+        <button
+          className={utilBtn}
+          onClick={() => {
+            if (!window.confirm('Clear all fog? This reveals the entire map.')) return
+            fogRef.current.fill('clear')
+            refreshUndo()
+            scheduleSave()
+          }}
+          title="Clear all fog"
+        >
           <Icon name="revealAll" />
         </button>
       </div>
