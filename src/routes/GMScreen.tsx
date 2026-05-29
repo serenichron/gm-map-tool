@@ -5,6 +5,7 @@ import { PinMarker } from '../components/PinMarker.tsx'
 import { PinEditor } from '../components/PinEditor.tsx'
 import { RoomMenu } from '../components/RoomMenu.tsx'
 import { HexGrid } from '../components/HexGrid.tsx'
+import { MapFrame } from '../components/MapFrame.tsx'
 import { Icon } from '../components/icons.tsx'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
@@ -805,6 +806,7 @@ function GMWorkspace() {
                   />
                 ))}
               </div>
+              <MapFrame width={map.width} height={map.height} />
             </Viewport>
             <div
               ref={cursorRef}

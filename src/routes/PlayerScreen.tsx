@@ -5,6 +5,7 @@ import { Viewport } from '../components/Viewport.tsx'
 import { PinMarker } from '../components/PinMarker.tsx'
 import { PinPopover } from '../components/PinPopover.tsx'
 import { HexGrid } from '../components/HexGrid.tsx'
+import { MapFrame } from '../components/MapFrame.tsx'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController } from '../lib/fog.ts'
 import { buildFrost } from '../lib/frost.ts'
@@ -329,6 +330,7 @@ export function PlayerScreen() {
                 />
               ))}
             </div>
+            <MapFrame width={pub.width} height={pub.height} />
           </Viewport>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3.5 text-center">
