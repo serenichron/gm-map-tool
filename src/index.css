@@ -1,0 +1,110 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   The Stranded — design tokens
+   Palette and type from the project design doc. Warm, worn, low-lit.
+   Tailwind v4 reads these @theme vars and generates utilities:
+   --color-panel  -> bg-panel / text-panel / border-panel
+   --font-display -> font-display, etc.
+   ============================================================ */
+@theme {
+  /* surfaces & text */
+  --color-bone: #ece0cb;
+  --color-bone-dim: #c8bca6;
+  --color-ink: #16110b;
+  --color-ink-2: #1f1810;
+  --color-panel: #231a11;
+  --color-panel-2: #2c2117;
+  --color-line: #4a3a27;
+
+  /* accents */
+  --color-ochre: #c8923d;
+  --color-gold: #e0a94b;
+  --color-rust: #a8503a;
+  --color-teal: #3e8e89;
+  --color-teal-dim: #2c625e;
+
+  /* fog */
+  --color-fog-dust: #4a3f31;
+  --color-fog-warn: #d98a4a;
+
+  /* the seven crystal domains (pin colours — warm, muted, never neon).
+     starting values; tune live. */
+  --color-crimson: #b0463c;
+  --color-amber: #c8923d;
+  --color-verdant: #6e7a4b;
+  --color-azure: #6d93a6;
+  --color-violet: #8a6699;
+  --color-pale: #d9cdb5;
+  --color-void: #3b3340;
+
+  /* type */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Spectral', Georgia, serif;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ============================================================
+   Base layer — late-afternoon golden hour, grain, vignette.
+   ============================================================ */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    color: var(--color-bone);
+    font-family: var(--font-body);
+    background: radial-gradient(
+      120% 90% at 50% -10%,
+      #3a2c1c 0%,
+      var(--color-ink) 55%,
+      #0c0805 100%
+    );
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    color-scheme: dark;
+  }
+
+  /* soft warm vignette at the edges */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    background: radial-gradient(
+      130% 110% at 50% 40%,
+      transparent 55%,
+      rgba(10, 6, 3, 0.45) 100%
+    );
+  }
+
+  /* faint film grain over the whole app */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  button {
+    font-family: var(--font-ui);
+    cursor: pointer;
+    color: inherit;
+  }
+
+  input,
+  textarea,
+  select {
+    font-family: var(--font-ui);
+    color: var(--color-bone);
+  }
+}
