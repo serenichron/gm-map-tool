@@ -149,7 +149,7 @@ export function PlayerScreen() {
       depth.width = W
       depth.height = H
       const dc = depth.getContext('2d')!
-      const shift = Math.max(30, Math.round(Math.min(W, H) * 0.05))
+      const shift = Math.max(24, Math.round(Math.min(W, H) * 0.04))
       dc.clearRect(0, 0, W, H)
       dc.filter = `blur(${Math.round(shift * 0.45)}px)`
       dc.drawImage(soft, shift, shift, W, H) // softened fog shape, offset
