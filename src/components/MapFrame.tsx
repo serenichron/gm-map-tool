@@ -6,12 +6,12 @@ function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.clearRect(0, 0, w, h)
   const T = Math.max(6, Math.round(Math.min(w, h) * 0.012)) // frame thickness
 
-  // metallic gold sheen, repeating a couple of times around the frame
+  // worn copper sheen, repeating a couple of times around the frame
   const grad = ctx.createLinearGradient(0, 0, w, h)
   const cycles = 2
   for (let i = 0; i <= cycles; i++) {
-    grad.addColorStop(i / cycles, '#f0d28a')
-    if (i < cycles) grad.addColorStop((i + 0.5) / cycles, '#6e4a1c')
+    grad.addColorStop(i / cycles, '#a88974') // muted copper highlight
+    if (i < cycles) grad.addColorStop((i + 0.5) / cycles, '#4a382c') // muted copper shadow
   }
 
   // the band: fill the whole rect, cut out the opening
@@ -28,9 +28,9 @@ function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number) {
 
   // bright bevel lines
   ctx.lineWidth = Math.max(1, T * 0.05)
-  ctx.strokeStyle = 'rgba(247,226,165,0.75)'
+  ctx.strokeStyle = 'rgba(216,196,176,0.5)'
   ctx.strokeRect(T * 0.3, T * 0.3, w - T * 0.6, h - T * 0.6)
-  ctx.strokeStyle = 'rgba(247,226,165,0.45)'
+  ctx.strokeStyle = 'rgba(216,196,176,0.3)'
   ctx.strokeRect(T * 0.7, T * 0.7, w - T * 1.4, h - T * 1.4)
 
   // crystal accents on the four corners
