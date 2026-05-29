@@ -10,7 +10,7 @@ function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const grad = ctx.createLinearGradient(0, 0, w, h)
   const cycles = 2
   for (let i = 0; i <= cycles; i++) {
-    grad.addColorStop(i / cycles, '#a88974') // muted copper highlight
+    grad.addColorStop(i / cycles, '#8f7160') // muted copper highlight
     if (i < cycles) grad.addColorStop((i + 0.5) / cycles, '#4a382c') // muted copper shadow
   }
 
