@@ -38,11 +38,13 @@ export function AppShell({
               Worldsmith
             </span>
           </Link>
-          <span
-            className={`rounded-full border px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${chip}`}
-          >
-            {role === 'gm' ? 'GM' : 'Player'}
-          </span>
+          {role === 'gm' && (
+            <span
+              className={`rounded-full border px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${chip}`}
+            >
+              GM
+            </span>
+          )}
 
           <div className="flex-1" />
 

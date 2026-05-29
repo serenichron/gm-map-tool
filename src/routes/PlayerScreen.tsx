@@ -75,7 +75,6 @@ export function PlayerScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [zoom, setZoom] = useState(1)
 
   const fogRef = useRef<FogController>(null as unknown as FogController)
   if (!fogRef.current) {
@@ -104,7 +103,6 @@ export function PlayerScreen() {
   const { viewportRef, stageRef, fit, screenToImage } = useViewport(
     pub?.width ?? 0,
     pub?.height ?? 0,
-    { onScaleChange: setZoom },
   )
 
   useEffect(() => {
@@ -253,22 +251,18 @@ export function PlayerScreen() {
   const topRight = (
     <div className="flex items-center gap-2">
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] ${
-          connected ? 'border-teal-dim bg-teal/10 text-teal' : 'border-line text-bone-dim'
+        className={`inline-flex items-center gap-1.5 font-ui text-[10px] uppercase tracking-[0.16em] ${
+          connected ? 'text-teal' : 'text-bone-dim'
         }`}
-        title={connected ? 'Connected' : 'Connecting…'}
+        title={connected ? 'Connected to the GM — receiving updates live' : 'Connecting…'}
       >
-        ● {connected ? 'live' : '…'}
+        <span className={`h-2 w-2 rounded-full ${connected ? 'bg-teal' : 'bg-bone-dim'}`} />
+        {connected ? 'Live' : '…'}
       </span>
       {pub && (
-        <>
-          <span className="min-w-[40px] text-center font-ui text-[11px] text-bone-dim">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button className={iconBtn} onClick={() => fit()} title="Fit map to screen">
-            <Icon name="fit" />
-          </button>
-        </>
+        <button className={iconBtn} onClick={() => fit()} title="Fit map to screen">
+          <Icon name="fit" />
+        </button>
       )}
     </div>
   )

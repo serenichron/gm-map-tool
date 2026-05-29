@@ -4,15 +4,15 @@ import { useEffect, useRef } from 'react'
  *  stretched to the map, so it stays light on memory while scaling with zoom. */
 function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.clearRect(0, 0, w, h)
-  const T = Math.max(8, Math.round(Math.min(w, h) * 0.022)) // frame thickness
+  const T = Math.max(6, Math.round(Math.min(w, h) * 0.012)) // frame thickness
 
-  // metallic gold sheen
+  // metallic gold sheen, repeating a couple of times around the frame
   const grad = ctx.createLinearGradient(0, 0, w, h)
-  grad.addColorStop(0, '#f0d28a')
-  grad.addColorStop(0.28, '#c8923d')
-  grad.addColorStop(0.5, '#6e4a1c')
-  grad.addColorStop(0.72, '#c8923d')
-  grad.addColorStop(1, '#f0d28a')
+  const cycles = 2
+  for (let i = 0; i <= cycles; i++) {
+    grad.addColorStop(i / cycles, '#f0d28a')
+    if (i < cycles) grad.addColorStop((i + 0.5) / cycles, '#6e4a1c')
+  }
 
   // the band: fill the whole rect, cut out the opening
   ctx.fillStyle = grad
