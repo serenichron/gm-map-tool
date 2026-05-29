@@ -136,15 +136,15 @@ export class FogHaze {
     ax.clearRect(0, 0, this.w, this.h)
 
     // faint constant haze so even clear gaps stay slightly veiled
-    ax.globalAlpha = 0.1
+    ax.globalAlpha = 0.16
     ax.fillStyle = `rgba(${DUST},1)`
     ax.fillRect(0, 0, this.w, this.h)
 
     // slow-drifting cloud layers — opposite directions + a big slow roll, so the
     // forms evolve as they pass over each other
-    this.layer(ax, t * 0.004, t * 0.0025, 2.2, 0.62)
-    this.layer(ax, -t * 0.003, t * 0.004, 3.0, 0.5)
-    this.layer(ax, t * 0.0015, -t * 0.0012, 4.6, 0.3)
+    this.layer(ax, t * 0.004, t * 0.0025, 2.2, 0.74)
+    this.layer(ax, -t * 0.003, t * 0.004, 3.0, 0.6)
+    this.layer(ax, t * 0.0015, -t * 0.0012, 4.6, 0.36)
 
     // keep it only where fog remains (mask already softened by the caller)
     ax.globalCompositeOperation = 'destination-in'
