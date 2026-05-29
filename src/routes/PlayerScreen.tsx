@@ -49,12 +49,17 @@ export function PlayerScreen() {
   const [zoom, setZoom] = useState(1)
 
   const fogRef = useRef<FogController>(null as unknown as FogController)
-  if (!fogRef.current) fogRef.current = new FogController()
+  if (!fogRef.current) {
+    fogRef.current = new FogController()
+    fogRef.current.hexClearScale = 1.2 // players see the clear bleed a bit past tiles
+  }
   const offscreenFog = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
   if (!offscreenFog.current) offscreenFog.current = document.createElement('canvas')
-  // a blurred copy of the fog mask — softens the fog→clear edges for both layers
+  // soft mask for the shadow (unshifted); cover mask for frost/haze (shifted)
   const softMask = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
   if (!softMask.current) softMask.current = document.createElement('canvas')
+  const coverMask = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
+  if (!coverMask.current) coverMask.current = document.createElement('canvas')
 
   const depthCanvasRef = useRef<HTMLCanvasElement>(null)
   const frostCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -144,34 +149,42 @@ export function PlayerScreen() {
     const W = pub.width
     const H = pub.height
     const blurR = Math.max(8, Math.round(Math.min(W, H) * 0.012))
+    const shift = Math.max(14, Math.round(Math.min(W, H) * 0.022)) // shadow offset
+    const over = blurR * 3 // overflow so the blur never fades the outer margin
 
-    // soft mask: blur the fog so cleared edges diffuse. Draw it overflowing the
-    // canvas by the blur radius so the *outer* map border stays solid (otherwise
-    // the blur samples past the edge and fades the whole margin).
+    // soft mask (UNSHIFTED): the fog shape, used to cast the drop shadow.
     const soft = softMask.current
     soft.width = W
     soft.height = H
     const sc = soft.getContext('2d')!
-    // overflow well past the canvas so the blur never fades the outer margin
-    const over = blurR * 3
     sc.clearRect(0, 0, W, H)
     sc.filter = `blur(${blurR}px)`
     sc.drawImage(off, -over, -over, W + 2 * over, H + 2 * over)
     sc.filter = 'none'
 
-    // depth: a real drop shadow of the whole fog, sitting UNDER it on the ground.
-    // It's the fog shape, darkened and pushed down-right (as if the fog bank is
-    // above and lit from upper-left). Under the fog it's hidden by the fog; only
-    // the part that overhangs the cleared edge shows, reading as cast shadow.
+    // cover mask (SHIFTED up-left by half the shadow offset): used for the visible
+    // fog (frost + haze). The shadow stays put, so the bright cleared area
+    // re-centres on the tile instead of looking pushed down-right by the shadow.
+    const half = Math.round(shift / 2)
+    const cover = coverMask.current
+    cover.width = W
+    cover.height = H
+    const cc = cover.getContext('2d')!
+    cc.clearRect(0, 0, W, H)
+    cc.filter = `blur(${blurR}px)`
+    cc.drawImage(off, -over - half, -over - half, W + 2 * over, H + 2 * over)
+    cc.filter = 'none'
+
+    // depth: a real drop shadow of the whole fog, sitting UNDER it on the ground,
+    // pushed down-right (as if the fog bank is above and lit from upper-left).
     const depth = depthCanvasRef.current
     if (depth) {
       depth.width = W
       depth.height = H
       const dc = depth.getContext('2d')!
-      const shift = Math.max(14, Math.round(Math.min(W, H) * 0.022))
       dc.clearRect(0, 0, W, H)
       dc.filter = `blur(${Math.round(shift * 0.45)}px)`
-      dc.drawImage(soft, shift, shift, W, H) // softened fog shape, offset
+      dc.drawImage(soft, shift, shift, W, H)
       dc.filter = 'none'
       dc.globalCompositeOperation = 'source-in'
       dc.fillStyle = 'rgba(6,4,2,0.72)' // warm near-black shadow
@@ -181,13 +194,13 @@ export function PlayerScreen() {
 
     frost.width = W
     frost.height = H
-    buildFrost(frost, soft, img, W, H)
-    // start/refresh the drifting fog haze, masked to the same soft fog
+    buildFrost(frost, cover, img, W, H)
+    // drifting fog haze, masked to the shifted cover
     const anim = fogAnimRef.current
     if (anim) {
       anim.width = pub.width
       anim.height = pub.height
-      hazeRef.current.configure(anim, soft, pub.width, pub.height)
+      hazeRef.current.configure(anim, cover, pub.width, pub.height)
     }
     if (!didFit.current) {
       didFit.current = true
