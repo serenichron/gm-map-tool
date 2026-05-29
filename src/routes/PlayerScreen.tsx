@@ -24,6 +24,36 @@ import { addRecentRoom } from '../lib/recent.ts'
 const tbtn =
   'inline-flex items-center justify-center rounded-[9px] border border-line bg-panel-2 px-3 py-2 font-ui text-[13px] font-medium text-bone transition hover:border-[#6a5232] hover:bg-[#352818]'
 
+/**
+ * Build a blurred copy of the fog mask, translated by (dx,dy) WITHOUT scaling
+ * (so the offset is uniform). The fog's edges are stretched outward (clamped) to
+ * fill the margin the shift/blur would otherwise leave, keeping the map border
+ * covered.
+ */
+function buildBlurredMask(
+  dest: HTMLCanvasElement,
+  off: HTMLCanvasElement,
+  W: number,
+  H: number,
+  blurR: number,
+  dx: number,
+  dy: number,
+) {
+  dest.width = W
+  dest.height = H
+  const c = dest.getContext('2d')!
+  c.clearRect(0, 0, W, H)
+  c.filter = `blur(${blurR}px)`
+  const e = blurR + Math.max(Math.abs(dx), Math.abs(dy)) + 4 // clamp reach
+  c.drawImage(off, dx, dy, W, H) // fog, translated, natural scale
+  // stretch the four edges outward so borders/margins stay covered
+  c.drawImage(off, 0, 0, 1, H, dx - e, dy - e, e, H + 2 * e) // left
+  c.drawImage(off, W - 1, 0, 1, H, dx + W, dy - e, e, H + 2 * e) // right
+  c.drawImage(off, 0, 0, W, 1, dx - e, dy - e, W + 2 * e, e) // top
+  c.drawImage(off, 0, H - 1, W, 1, dx - e, dy + H, W + 2 * e, e) // bottom
+  c.filter = 'none'
+}
+
 type Pub = {
   version: number
   width: number
@@ -150,30 +180,17 @@ export function PlayerScreen() {
     const H = pub.height
     const blurR = Math.max(8, Math.round(Math.min(W, H) * 0.012))
     const shift = Math.max(14, Math.round(Math.min(W, H) * 0.022)) // shadow offset
-    const over = blurR * 3 // overflow so the blur never fades the outer margin
+    const half = Math.round(shift / 2)
 
     // soft mask (UNSHIFTED): the fog shape, used to cast the drop shadow.
     const soft = softMask.current
-    soft.width = W
-    soft.height = H
-    const sc = soft.getContext('2d')!
-    sc.clearRect(0, 0, W, H)
-    sc.filter = `blur(${blurR}px)`
-    sc.drawImage(off, -over, -over, W + 2 * over, H + 2 * over)
-    sc.filter = 'none'
+    buildBlurredMask(soft, off, W, H, blurR, 0, 0)
 
     // cover mask (SHIFTED up-left by half the shadow offset): used for the visible
-    // fog (frost + haze). The shadow stays put, so the bright cleared area
-    // re-centres on the tile instead of looking pushed down-right by the shadow.
-    const half = Math.round(shift / 2)
+    // fog (frost + haze) so the bright cleared area re-centres on the tile while
+    // the shadow stays put. Uniform translation (no scaling).
     const cover = coverMask.current
-    cover.width = W
-    cover.height = H
-    const cc = cover.getContext('2d')!
-    cc.clearRect(0, 0, W, H)
-    cc.filter = `blur(${blurR}px)`
-    cc.drawImage(off, -over - half, -over - half, W + 2 * over, H + 2 * over)
-    cc.filter = 'none'
+    buildBlurredMask(cover, off, W, H, blurR, -half, -half)
 
     // depth: a real drop shadow of the whole fog, sitting UNDER it on the ground,
     // pushed down-right (as if the fog bank is above and lit from upper-left).
