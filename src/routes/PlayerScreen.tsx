@@ -257,7 +257,7 @@ export function PlayerScreen() {
             {/* grid sits above the dark ground-hint, under the drifting dust:
                 dimmed through fog, crisp where cleared */}
             {pub.grid?.enabled && (
-              <HexGrid width={pub.width} height={pub.height} size={pub.grid.size} alpha={0.5} />
+              <HexGrid width={pub.width} height={pub.height} size={pub.grid.size} />
             )}
             <canvas
               ref={fogAnimRef}

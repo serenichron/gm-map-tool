@@ -9,14 +9,14 @@ function drawHexGrid(
   color: string,
   color2: string,
   lineWidth: number,
-  alpha: number,
 ) {
   ctx.clearRect(0, 0, w, h)
   if (r < 6) return
   const colW = Math.sqrt(3) * r // horizontal centre spacing
   const rowH = 1.5 * r // vertical centre spacing
   // repeating gold -> dark -> gold sheen across the grid (golden shine). Smaller
-  // bands (~repeat every ~280px) so the shimmer recurs across the map.
+  // bands (~repeat every ~280px) so the shimmer recurs across the map. The per-
+  // colour alpha (set in the rgba stops) gives the lines their transparency.
   const grad = ctx.createLinearGradient(0, 0, w, h)
   const cycles = Math.max(3, Math.round(Math.hypot(w, h) / 280))
   for (let i = 0; i <= cycles; i++) {
@@ -25,7 +25,6 @@ function drawHexGrid(
   }
   ctx.strokeStyle = grad
   ctx.lineWidth = lineWidth
-  ctx.globalAlpha = alpha
   ctx.beginPath()
   for (let row = -1; row * rowH < h + rowH; row++) {
     const cy = row * rowH
@@ -54,9 +53,8 @@ export function HexGrid({
   width,
   height,
   size,
-  color = '#e8b75e',
-  color2 = '#6e4a1c',
-  alpha = 0.55,
+  color = 'rgba(232,183,94,0.7)', // gold, 30% transparent
+  color2 = 'rgba(110,74,28,0.5)', // dark, 50% transparent
   lineWidth = 2,
 }: {
   width: number
@@ -64,7 +62,6 @@ export function HexGrid({
   size: number
   color?: string
   color2?: string
-  alpha?: number
   lineWidth?: number
 }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -74,8 +71,8 @@ export function HexGrid({
     c.width = width
     c.height = height
     const ctx = c.getContext('2d')
-    if (ctx) drawHexGrid(ctx, width, height, size, color, color2, lineWidth, alpha)
-  }, [width, height, size, color, color2, alpha, lineWidth])
+    if (ctx) drawHexGrid(ctx, width, height, size, color, color2, lineWidth)
+  }, [width, height, size, color, color2, lineWidth])
 
   return (
     <canvas

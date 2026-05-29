@@ -677,7 +677,7 @@ function GMWorkspace() {
                 className="pointer-events-none absolute left-0 top-0"
                 style={{ width: map.width, height: map.height, opacity: GM_FOG_OPACITY }}
               />
-              {gridOn && <HexGrid width={map.width} height={map.height} size={gridSize} alpha={0.55} />}
+              {gridOn && <HexGrid width={map.width} height={map.height} size={gridSize} />}
               <div className="pointer-events-none absolute left-0 top-0" style={{ width: map.width, height: map.height }}>
                 {pins.map((p) => (
                   <PinMarker
