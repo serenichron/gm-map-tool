@@ -13,6 +13,8 @@ export function RoomMenu({
   onCreate,
   onRename,
   onDelete,
+  onExport,
+  onImport,
 }: {
   rooms: Room[]
   activeId: string | null
@@ -20,6 +22,8 @@ export function RoomMenu({
   onCreate: (name: string) => void
   onRename: (id: string, name: string) => void
   onDelete: (id: string) => void
+  onExport: () => void
+  onImport: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [newName, setNewName] = useState('')
@@ -141,6 +145,27 @@ export function RoomMenu({
               className="rounded-lg border border-ochre bg-gradient-to-b from-[#3f2e1a] to-[#30230f] px-3 py-1.5 font-ui text-[13px] font-semibold text-gold"
             >
               Create
+            </button>
+          </div>
+
+          <div className="mt-1.5 flex gap-1.5 border-t border-line pt-2">
+            <button
+              onClick={() => {
+                onExport()
+                setOpen(false)
+              }}
+              className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-1.5 font-ui text-[12px] text-bone transition hover:border-[#6a5232] hover:bg-[#352818]"
+            >
+              Export all
+            </button>
+            <button
+              onClick={() => {
+                onImport()
+                setOpen(false)
+              }}
+              className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-1.5 font-ui text-[12px] text-bone transition hover:border-[#6a5232] hover:bg-[#352818]"
+            >
+              Import
             </button>
           </div>
         </div>

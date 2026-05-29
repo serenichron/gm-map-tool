@@ -117,6 +117,7 @@ function GMWorkspace() {
 
   const fogCanvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const importRef = useRef<HTMLInputElement>(null)
   const workspaceRef = useRef<HTMLDivElement>(null)
   const cursorRef = useRef<HTMLDivElement>(null)
 
@@ -474,6 +475,92 @@ function GMWorkspace() {
     }
   }
 
+  // export every room's draft (map image + fog + pins + grid) to a JSON file
+  async function exportRooms() {
+    await saveNow()
+    const out: {
+      app: string
+      version: number
+      exportedAt: string
+      rooms: unknown[]
+    } = { app: 'worldsmith', version: 1, exportedAt: new Date().toISOString(), rooms: [] }
+    for (const r of rooms) {
+      const [img, working] = await Promise.all([
+        idbGet<Blob>(imgKey(r.id)),
+        idbGet<WorkingState>(workKey(r.id)),
+      ])
+      if (!working) continue
+      const image = img
+        ? await new Promise<string>((res) => {
+            const fr = new FileReader()
+            fr.onload = () => res(fr.result as string)
+            fr.readAsDataURL(img)
+          })
+        : null
+      out.rooms.push({
+        name: r.name,
+        joinCode: r.join_code,
+        width: working.width,
+        height: working.height,
+        fogOps: working.fogOps,
+        pins: working.pins,
+        grid: working.grid ?? null,
+        image,
+      })
+    }
+    const blob = new Blob([JSON.stringify(out)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `worldsmith-rooms-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  // recreate rooms from an exported file (as new rooms with fresh codes)
+  async function importRooms(file: File) {
+    let data: { app?: string; rooms?: Record<string, unknown>[] }
+    try {
+      data = JSON.parse(await file.text())
+    } catch {
+      window.alert('Could not read that file.')
+      return
+    }
+    if (data.app !== 'worldsmith' || !Array.isArray(data.rooms)) {
+      window.alert('That is not a Worldsmith export.')
+      return
+    }
+    const uid = gmIdRef.current
+    await saveNow()
+    let firstId: string | null = null
+    let added: Room[] = []
+    for (const r of data.rooms) {
+      let id: string
+      if (hasSupabase && uid) {
+        const room = await createRoom(uid, (r.name as string) || 'Imported room')
+        if (!room) continue
+        id = room.id
+        added = [...added, room]
+      } else {
+        id = LOCAL_ROOM
+      }
+      if (typeof r.image === 'string') {
+        const b = await (await fetch(r.image)).blob()
+        await idbSet(imgKey(id), b)
+      }
+      await idbSet(workKey(id), {
+        width: r.width as number,
+        height: r.height as number,
+        fogOps: (r.fogOps as WorkingState['fogOps']) ?? [],
+        pins: (r.pins as WorkingState['pins']) ?? [],
+        grid: (r.grid as WorkingState['grid']) ?? null,
+      })
+      if (!firstId) firstId = id
+    }
+    if (added.length) setRooms((rs) => [...rs, ...added])
+    if (firstId) setActiveRoomId(firstId)
+    window.alert(`Imported ${data.rooms.length} room(s).`)
+  }
+
   async function copyPlayerLink() {
     if (!activeRoom) return
     // base-aware hash link, works on localhost, LAN, and GitHub Pages alike
@@ -573,6 +660,8 @@ function GMWorkspace() {
             onCreate={createNewRoom}
             onRename={rename}
             onDelete={removeRoom}
+            onExport={() => void exportRooms()}
+            onImport={() => importRef.current?.click()}
           />
           <button className={iconBtn} onClick={() => void copyPlayerLink()} title="Copy the player join link">
             <Icon name={copied ? 'check' : 'copy'} />
@@ -853,6 +942,17 @@ function GMWorkspace() {
         className="hidden"
         onChange={(e) => {
           loadFile(e.target.files?.[0])
+          e.target.value = ''
+        }}
+      />
+      <input
+        ref={importRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) void importRooms(f)
           e.target.value = ''
         }}
       />
