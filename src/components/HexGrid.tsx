@@ -53,8 +53,8 @@ export function HexGrid({
   width,
   height,
   size,
-  color = 'rgba(232,183,94,0.7)', // gold, 30% transparent
-  color2 = 'rgba(110,74,28,0.5)', // dark, 50% transparent
+  color = 'rgba(232,183,94,0.45)', // gold
+  color2 = 'rgba(110,74,28,0.28)', // dark
   lineWidth = 2,
 }: {
   width: number

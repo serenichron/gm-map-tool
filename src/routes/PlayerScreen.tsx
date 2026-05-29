@@ -242,6 +242,11 @@ export function PlayerScreen() {
             height={pub.height}
             cursorClass="cursor-grab"
           >
+            {/* grid sits on the ground beneath everything fog-related, so the fog
+                covers it where present and it stays crisp where cleared */}
+            {pub.grid?.enabled && (
+              <HexGrid width={pub.width} height={pub.height} size={pub.grid.size} />
+            )}
             <canvas
               ref={depthCanvasRef}
               className="pointer-events-none absolute left-0 top-0"
@@ -254,11 +259,6 @@ export function PlayerScreen() {
               className="pointer-events-none absolute left-0 top-0"
               style={{ width: pub.width, height: pub.height }}
             />
-            {/* grid sits above the dark ground-hint, under the drifting dust:
-                dimmed through fog, crisp where cleared */}
-            {pub.grid?.enabled && (
-              <HexGrid width={pub.width} height={pub.height} size={pub.grid.size} />
-            )}
             <canvas
               ref={fogAnimRef}
               className="pointer-events-none absolute left-0 top-0"
