@@ -29,8 +29,9 @@ function mulberry32(seed: number): () => number {
 // wisps (mostly thin, with denser veins) so the fog looks translucent and soft.
 function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
   const rng = mulberry32(seed)
-  const periods = [6, 12, 24, 48, 96] // all share factors with 512 → seamless
-  const weights = [0.42, 0.26, 0.16, 0.1, 0.06]
+  // low frequencies weighted heavily → big rounded cloud masses, not fine veins
+  const periods = [3, 6, 12, 24, 48] // all share factors with 512 → seamless
+  const weights = [0.4, 0.27, 0.18, 0.1, 0.05]
   const grids = periods.map((p) => {
     const g = new Float32Array(p * p)
     for (let i = 0; i < g.length; i++) g[i] = rng()
@@ -58,8 +59,9 @@ function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
         const bot = g[y1 * p + x0] + (g[y1 * p + x1] - g[y1 * p + x0]) * tx
         v += (top + (bot - top) * ty) * weights[o]
       }
-      // shape into wisps: lift the floor toward transparent, keep dense veins
-      let a = (v - 0.4) * 2.0
+      // shape into soft-edged cloud masses: clear sky below the threshold,
+      // rounded billows above it
+      let a = (v - 0.45) / (0.72 - 0.45)
       a = a < 0 ? 0 : a > 1 ? 1 : a
       a = a * a * (3 - 2 * a)
       const i = (y * size + x) * 4
@@ -133,15 +135,16 @@ export class FogHaze {
     ax.globalAlpha = 1
     ax.clearRect(0, 0, this.w, this.h)
 
-    // faint constant haze so even thin gaps stay slightly veiled
-    ax.globalAlpha = 0.14
+    // faint constant haze so even clear gaps stay slightly veiled
+    ax.globalAlpha = 0.1
     ax.fillStyle = `rgba(${DUST},1)`
     ax.fillRect(0, 0, this.w, this.h)
 
-    // drifting wisps — opposite directions and a big slow roll, densities add up
-    this.layer(ax, t * 0.008, t * 0.005, 2.6, 0.6)
-    this.layer(ax, -t * 0.006, t * 0.0075, 3.4, 0.5)
-    this.layer(ax, t * 0.003, -t * 0.0025, 5.5, 0.35)
+    // slow-drifting cloud layers — opposite directions + a big slow roll, so the
+    // forms evolve as they pass over each other
+    this.layer(ax, t * 0.004, t * 0.0025, 2.2, 0.62)
+    this.layer(ax, -t * 0.003, t * 0.004, 3.0, 0.5)
+    this.layer(ax, t * 0.0015, -t * 0.0012, 4.6, 0.3)
 
     // keep it only where fog remains (mask already softened by the caller)
     ax.globalCompositeOperation = 'destination-in'
