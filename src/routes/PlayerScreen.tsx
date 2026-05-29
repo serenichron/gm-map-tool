@@ -7,6 +7,7 @@ import { PinPopover } from '../components/PinPopover.tsx'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController } from '../lib/fog.ts'
 import { buildFrost } from '../lib/frost.ts'
+import { FogHaze } from '../lib/fogAnim.ts'
 import {
   createLocalBackend,
   createSupabaseBackend,
@@ -44,6 +45,9 @@ export function PlayerScreen() {
   if (!offscreenFog.current) offscreenFog.current = document.createElement('canvas')
 
   const frostCanvasRef = useRef<HTMLCanvasElement>(null)
+  const fogAnimRef = useRef<HTMLCanvasElement>(null)
+  const hazeRef = useRef<FogHaze>(null as unknown as FogHaze)
+  if (!hazeRef.current) hazeRef.current = new FogHaze()
   const mapImgRef = useRef<HTMLImageElement | null>(null)
   const lastVersion = useRef(0)
   const lastBlobUrl = useRef<string | null>(null)
@@ -118,11 +122,21 @@ export function PlayerScreen() {
     frost.width = pub.width
     frost.height = pub.height
     buildFrost(frost, off, img, pub.width, pub.height)
+    // start/refresh the drifting fog haze, masked to the same fog
+    const anim = fogAnimRef.current
+    if (anim) {
+      anim.width = pub.width
+      anim.height = pub.height
+      hazeRef.current.configure(anim, off, pub.width, pub.height)
+    }
     if (!didFit.current) {
       didFit.current = true
       fit()
     }
   }, [pub, fit])
+
+  // stop the animation loop on unmount
+  useEffect(() => () => hazeRef.current.stop(), [])
 
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
 
@@ -172,6 +186,11 @@ export function PlayerScreen() {
               ref={frostCanvasRef}
               width={pub.width}
               height={pub.height}
+              className="pointer-events-none absolute left-0 top-0"
+              style={{ width: pub.width, height: pub.height }}
+            />
+            <canvas
+              ref={fogAnimRef}
               className="pointer-events-none absolute left-0 top-0"
               style={{ width: pub.width, height: pub.height }}
             />

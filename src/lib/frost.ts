@@ -1,5 +1,3 @@
-import { FOG_COLOR } from './fog.ts'
-
 /**
  * The player's veil over hidden ground. Instead of a flat grey screen, hidden
  * areas show a blurred, dimmed, dust-tinted hint of the map beneath — enough to
@@ -19,11 +17,11 @@ export function buildFrost(
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, w, h)
   ctx.globalCompositeOperation = 'source-over'
-  ctx.filter = 'blur(17px) brightness(0.46) saturate(0.8)'
+  // a faint, heavily blurred hint of the ground; the animated haze (fogAnim)
+  // layers the warm drifting dust on top of this
+  ctx.filter = 'blur(18px) brightness(0.4) saturate(0.8)'
   ctx.drawImage(mapImg, 0, 0, w, h)
   ctx.filter = 'none'
-  ctx.fillStyle = `rgba(${FOG_COLOR[0]},${FOG_COLOR[1]},${FOG_COLOR[2]},0.5)`
-  ctx.fillRect(0, 0, w, h)
   // keep the veil only where fog remains
   ctx.globalCompositeOperation = 'destination-in'
   ctx.drawImage(fog, 0, 0, w, h)
