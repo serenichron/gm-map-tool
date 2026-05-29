@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell.tsx'
 import { Viewport } from '../components/Viewport.tsx'
@@ -98,6 +98,7 @@ export function PlayerScreen() {
   const lastVersion = useRef(0)
   const lastBlobUrl = useRef<string | null>(null)
   const didFit = useRef(false)
+  const pubRef = useRef<Pub | null>(null)
 
   const { viewportRef, stageRef, fit, screenToImage } = useViewport(
     pub?.width ?? 0,
@@ -162,20 +163,24 @@ export function PlayerScreen() {
     }
   }, [searchParams])
 
-  // render fog -> frost whenever a new published state arrives
-  useLayoutEffect(() => {
-    if (!pub) return
+  // Draw all the fog layers from the current published state. Reads refs only,
+  // so it can be called from the render effect AND whenever the page becomes
+  // visible again — mobile browsers discard canvas contents while backgrounded,
+  // which would otherwise leave the bare map showing on resume.
+  const renderFog = useCallback(() => {
+    const p = pubRef.current
     const frost = frostCanvasRef.current
     const img = mapImgRef.current
-    if (!frost || !img) return
-    const off = offscreenFog.current
-    off.width = pub.width
-    off.height = pub.height
-    fogRef.current.attach(off, pub.width, pub.height)
-    fogRef.current.setOps(pub.fogOps)
+    if (!p || !frost || !img) return
 
-    const W = pub.width
-    const H = pub.height
+    const W = p.width
+    const H = p.height
+    const off = offscreenFog.current
+    off.width = W
+    off.height = H
+    fogRef.current.attach(off, W, H)
+    fogRef.current.setOps(p.fogOps)
+
     const blurR = Math.max(8, Math.round(Math.min(W, H) * 0.012))
     const shift = Math.max(14, Math.round(Math.min(W, H) * 0.022)) // shadow offset
     const half = Math.round(shift / 2) // up-left shift so the bright clear re-centres
@@ -184,8 +189,7 @@ export function PlayerScreen() {
     const cover = coverMask.current
     buildBlurredMask(cover, off, W, H, blurR, -half, -half)
 
-    // depth: drop shadow of the SAME (shifted) fog, pushed down-right — so the lit
-    // clear and the shadow share one hole instead of two offset ones.
+    // depth: drop shadow of the same (shifted) fog, pushed down-right.
     const depth = depthCanvasRef.current
     if (depth) {
       depth.width = W
@@ -196,7 +200,7 @@ export function PlayerScreen() {
       dc.drawImage(cover, shift, shift, W, H)
       dc.filter = 'none'
       dc.globalCompositeOperation = 'source-in'
-      dc.fillStyle = 'rgba(6,4,2,0.72)' // warm near-black shadow
+      dc.fillStyle = 'rgba(6,4,2,0.72)'
       dc.fillRect(0, 0, W, H)
       dc.globalCompositeOperation = 'source-over'
     }
@@ -204,20 +208,41 @@ export function PlayerScreen() {
     frost.width = W
     frost.height = H
     buildFrost(frost, cover, img, W, H)
+
     const anim = fogAnimRef.current
     if (anim) {
-      anim.width = pub.width
-      anim.height = pub.height
-      hazeRef.current.configure(anim, cover, pub.width, pub.height)
+      anim.width = W
+      anim.height = H
+      hazeRef.current.configure(anim, cover, W, H)
     }
+  }, [])
+
+  // (re)draw when a new published state arrives
+  useLayoutEffect(() => {
+    pubRef.current = pub
+    if (!pub) return
+    renderFog()
     if (!didFit.current) {
       didFit.current = true
       fit()
     }
-  }, [pub, fit])
+  }, [pub, renderFog, fit])
 
-  // stop the animation loop on unmount
-  useEffect(() => () => hazeRef.current.stop(), [])
+  // redraw fog when the page returns to view, and stop the haze on unmount
+  useEffect(() => {
+    const onVisible = () => {
+      if (!document.hidden) renderFog()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('pageshow', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('pageshow', onVisible)
+      window.removeEventListener('focus', onVisible)
+      hazeRef.current.stop()
+    }
+  }, [renderFog])
 
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
 
