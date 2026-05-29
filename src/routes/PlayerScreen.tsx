@@ -247,9 +247,6 @@ export function PlayerScreen() {
               className="pointer-events-none absolute left-0 top-0"
               style={{ width: pub.width, height: pub.height }}
             />
-            {pub.grid?.enabled && (
-              <HexGrid width={pub.width} height={pub.height} size={pub.grid.size} alpha={0.5} />
-            )}
             <canvas
               ref={frostCanvasRef}
               width={pub.width}
@@ -257,6 +254,11 @@ export function PlayerScreen() {
               className="pointer-events-none absolute left-0 top-0"
               style={{ width: pub.width, height: pub.height }}
             />
+            {/* grid sits above the dark ground-hint, under the drifting dust:
+                dimmed through fog, crisp where cleared */}
+            {pub.grid?.enabled && (
+              <HexGrid width={pub.width} height={pub.height} size={pub.grid.size} alpha={0.5} />
+            )}
             <canvas
               ref={fogAnimRef}
               className="pointer-events-none absolute left-0 top-0"

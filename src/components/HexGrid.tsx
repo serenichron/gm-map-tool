@@ -7,6 +7,7 @@ function drawHexGrid(
   h: number,
   r: number,
   color: string,
+  color2: string,
   lineWidth: number,
   alpha: number,
 ) {
@@ -14,7 +15,12 @@ function drawHexGrid(
   if (r < 6) return
   const colW = Math.sqrt(3) * r // horizontal centre spacing
   const rowH = 1.5 * r // vertical centre spacing
-  ctx.strokeStyle = color
+  // gold -> dark -> gold sheen across the grid (a faint golden shine)
+  const grad = ctx.createLinearGradient(0, 0, w, h)
+  grad.addColorStop(0, color)
+  grad.addColorStop(0.5, color2)
+  grad.addColorStop(1, color)
+  ctx.strokeStyle = grad
   ctx.lineWidth = lineWidth
   ctx.globalAlpha = alpha
   ctx.beginPath()
@@ -45,14 +51,16 @@ export function HexGrid({
   width,
   height,
   size,
-  color = '#e0a94b',
-  alpha = 0.5,
+  color = '#e8b75e',
+  color2 = '#6e4a1c',
+  alpha = 0.55,
   lineWidth = 2,
 }: {
   width: number
   height: number
   size: number
   color?: string
+  color2?: string
   alpha?: number
   lineWidth?: number
 }) {
@@ -63,8 +71,8 @@ export function HexGrid({
     c.width = width
     c.height = height
     const ctx = c.getContext('2d')
-    if (ctx) drawHexGrid(ctx, width, height, size, color, lineWidth, alpha)
-  }, [width, height, size, color, alpha, lineWidth])
+    if (ctx) drawHexGrid(ctx, width, height, size, color, color2, lineWidth, alpha)
+  }, [width, height, size, color, color2, alpha, lineWidth])
 
   return (
     <canvas

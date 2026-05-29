@@ -99,7 +99,7 @@ function GMWorkspace() {
   const [pins, setPins] = useState<Pin[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gridOn, setGridOn] = useState(false)
-  const [gridSize, setGridSize] = useState(70)
+  const [gridSize, setGridSize] = useState(37)
   const [dirty, setDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [rooms, setRooms] = useState<Room[]>([])
@@ -262,7 +262,7 @@ function GMWorkspace() {
         mapBlobRef.current = img
         setPins(working.pins ?? [])
         setGridOn(working.grid?.enabled ?? false)
-        setGridSize(working.grid?.size ?? 70)
+        setGridSize(working.grid?.size ?? 37)
         setSelectedId(null)
         setMap({ src: URL.createObjectURL(img), width: working.width, height: working.height })
       } else {
@@ -270,7 +270,7 @@ function GMWorkspace() {
         mapBlobRef.current = null
         setPins([])
         setGridOn(false)
-        setGridSize(70)
+        setGridSize(37)
         setSelectedId(null)
         setMap(null)
       }
@@ -583,8 +583,8 @@ function GMWorkspace() {
               <span className="font-ui text-[11px] text-bone-dim">Size</span>
               <input
                 type="range"
-                min={30}
-                max={200}
+                min={20}
+                max={87}
                 value={gridSize}
                 onChange={(e) => {
                   setGridSize(+e.target.value)
