@@ -130,7 +130,10 @@ export function FogView({
   // images (onload may not fire for a complete image) — else the fog never draws.
   useEffect(() => {
     const img = new Image()
+    let fired = false
     const done = () => {
+      if (fired) return // onload and the complete-check must not both render
+      fired = true
       mapImgRef.current = img
       renderFog()
     }
@@ -144,18 +147,21 @@ export function FogView({
     renderFog()
   }, [width, height, fogOps, grid, renderFog])
 
-  // redraw on return-to-view (mobile discards canvases while backgrounded)
+  // redraw on return-to-view (mobile discards canvases while backgrounded).
+  // visibilitychange only fires on an actual change (not initial load); pageshow
+  // only redraws on a bfcache restore — so initial load isn't double-rendered.
   useEffect(() => {
     const onVisible = () => {
       if (!document.hidden) renderFog()
     }
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) renderFog()
+    }
     document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('pageshow', onVisible)
-    window.addEventListener('focus', onVisible)
+    window.addEventListener('pageshow', onPageShow)
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('pageshow', onVisible)
-      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('pageshow', onPageShow)
       hazeRef.current.stop()
     }
   }, [renderFog])
