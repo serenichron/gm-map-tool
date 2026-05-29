@@ -86,6 +86,8 @@ export class FogController {
   /** Scale tile clears around their centre. 1 = exactly the hex (GM); the player
    *  sets >1 so the clear bleeds a little past the tile edge. */
   hexClearScale = 1
+  /** Push tile clears down by this fraction of the hex size (player only). */
+  hexClearShiftY = 0
   private cursor = 0 // number of ops currently applied (0..ops.length)
 
   private before: HTMLCanvasElement = document.createElement('canvas') // snapshot during active stroke
@@ -244,7 +246,9 @@ export class FogController {
 
   private applyHexCell(tool: FogTool, col: number, row: number, size: number, seed: number) {
     const ctx = this.ctx!
-    const { x, y } = hexCenter(col, row, size)
+    const c = hexCenter(col, row, size)
+    const x = c.x
+    const y = c.y + size * this.hexClearShiftY // nudge clear down a touch (player)
     const rs = size * this.hexClearScale // clear radius (may bleed past the tile)
     const verts = hexVertices(x, y, rs)
     ctx.save()

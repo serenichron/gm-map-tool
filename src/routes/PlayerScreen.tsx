@@ -82,6 +82,7 @@ export function PlayerScreen() {
   if (!fogRef.current) {
     fogRef.current = new FogController()
     fogRef.current.hexClearScale = 1.2 // players see the clear bleed a bit past tiles
+    fogRef.current.hexClearShiftY = 0.15 // and a touch lower
   }
   const offscreenFog = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
   if (!offscreenFog.current) offscreenFog.current = document.createElement('canvas')
