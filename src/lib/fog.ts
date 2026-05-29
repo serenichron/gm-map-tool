@@ -16,6 +16,8 @@
  * published to players in milestone 5.
  */
 
+import { hexCenter, hexVertices, type HexCell } from './hex.ts'
+
 export const FOG_COLOR = [74, 63, 49] as const // warm dust, never grey
 
 export type FogTool = 'reveal' | 'hide' | 'semi'
@@ -29,7 +31,16 @@ export type FogStroke = {
   points: Pt[] // image-space path
 }
 export type FogFill = { kind: 'fill'; value: 'covered' | 'clear' }
-export type FogOp = FogStroke | FogFill
+/** Whole hex tiles cleared / covered / partially torn, applied in one batch
+ *  (one undo). Each client renders the same cells from col/row/size. */
+export type FogHexes = {
+  kind: 'hexes'
+  tool: FogTool
+  size: number
+  seed: number
+  cells: HexCell[]
+}
+export type FogOp = FogStroke | FogFill | FogHexes
 
 const SHRED_TILE = 200
 
@@ -77,6 +88,7 @@ export class FogController {
   private before: HTMLCanvasElement = document.createElement('canvas') // snapshot during active stroke
   private scratch: HTMLCanvasElement = document.createElement('canvas') // semi masking buffer
   private current: FogStroke | null = null
+  private currentHex: FogHexes | null = null
   private shredCache = new Map<number, HTMLCanvasElement>()
 
   attach(canvas: HTMLCanvasElement, w: number, h: number) {
@@ -163,6 +175,35 @@ export class FogController {
     this.current = null
   }
 
+  // ---- active hex-tile batch (one click/drag = one undo) ----
+
+  beginHexBatch(tool: FogTool, size: number, seed: number) {
+    if (!this.ctx) return
+    const bctx = this.before.getContext('2d')!
+    bctx.clearRect(0, 0, this.w, this.h)
+    bctx.drawImage(this.canvas!, 0, 0)
+    this.currentHex = { kind: 'hexes', tool, size, seed, cells: [] }
+  }
+
+  addHexCell(col: number, row: number) {
+    if (!this.currentHex || !this.ctx) return
+    if (this.currentHex.cells.some((c) => c.col === col && c.row === row)) return
+    this.currentHex.cells.push({ col, row })
+    this.ctx.clearRect(0, 0, this.w, this.h)
+    this.ctx.drawImage(this.before, 0, 0)
+    this.applyHexes(this.currentHex)
+  }
+
+  endHexBatch() {
+    if (!this.currentHex) return
+    if (this.currentHex.cells.length > 0) {
+      this.ops.length = this.cursor
+      this.ops.push(this.currentHex)
+      this.cursor++
+    }
+    this.currentHex = null
+  }
+
   // ---- rendering ----
 
   private commit(op: FogOp) {
@@ -187,9 +228,45 @@ export class FogController {
       } else {
         ctx.clearRect(0, 0, this.w, this.h)
       }
+    } else if (op.kind === 'hexes') {
+      this.applyHexes(op)
     } else {
       this.applyStroke(op)
     }
+  }
+
+  private applyHexes(op: FogHexes) {
+    for (const cell of op.cells) this.applyHexCell(op.tool, cell.col, cell.row, op.size, op.seed)
+  }
+
+  private applyHexCell(tool: FogTool, col: number, row: number, size: number, seed: number) {
+    const ctx = this.ctx!
+    const { x, y } = hexCenter(col, row, size)
+    const verts = hexVertices(x, y, size)
+    ctx.save()
+    ctx.beginPath()
+    verts.forEach((v, i) => (i === 0 ? ctx.moveTo(v.x, v.y) : ctx.lineTo(v.x, v.y)))
+    ctx.closePath()
+    if (tool === 'reveal') {
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.fillStyle = 'rgba(0,0,0,1)'
+      ctx.fill()
+    } else if (tool === 'hide') {
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.fillStyle = `rgba(${FOG_COLOR[0]},${FOG_COLOR[1]},${FOG_COLOR[2]},1)`
+      ctx.fill()
+    } else {
+      // semi: torn shred clipped to the hex, anchored to image space (deterministic)
+      ctx.clip()
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.globalAlpha = 0.9
+      const pat = ctx.createPattern(this.getShred(seed), 'repeat')!
+      pat.setTransform(new DOMMatrix())
+      ctx.fillStyle = pat
+      ctx.fillRect(x - size, y - size, size * 2, size * 2)
+      ctx.globalAlpha = 1
+    }
+    ctx.restore()
   }
 
   private applyStroke(stroke: FogStroke) {

@@ -7,6 +7,7 @@ import { RoomMenu } from '../components/RoomMenu.tsx'
 import { HexGrid } from '../components/HexGrid.tsx'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
+import { pixelToHex } from '../lib/hex.ts'
 import { newPinId, type Pin } from '../lib/pins.ts'
 import { idbGet, idbSet, idbDel, imgKey, workKey, type WorkingState } from '../lib/storage.ts'
 import {
@@ -20,7 +21,7 @@ import { ensureSession } from '../lib/session.ts'
 import { createRoom, listRooms, renameRoom, deleteRoom, type Room } from '../lib/rooms.ts'
 import type { LoadedMap } from '../lib/types.ts'
 
-type Tool = 'pan' | FogTool | 'pin'
+type Tool = 'pan' | FogTool | 'pin' | 'tile'
 
 const GM_FOG_OPACITY = 0.66
 const LOCAL_ROOM = 'local' // single-room id when Supabase isn't configured
@@ -100,6 +101,7 @@ function GMWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [gridOn, setGridOn] = useState(false)
   const [gridSize, setGridSize] = useState(37)
+  const [tileAction, setTileAction] = useState<FogTool>('reveal')
   const [dirty, setDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [rooms, setRooms] = useState<Room[]>([])
@@ -132,6 +134,8 @@ function GMWorkspace() {
   gridOnRef.current = gridOn
   const gridSizeRef = useRef(gridSize)
   gridSizeRef.current = gridSize
+  const tileActionRef = useRef(tileAction)
+  tileActionRef.current = tileAction
   const activeRoomIdRef = useRef(activeRoomId)
   activeRoomIdRef.current = activeRoomId
 
@@ -188,6 +192,13 @@ function GMWorkspace() {
           addPin(pt.x, pt.y)
           return
         }
+        if (t === 'tile') {
+          const seed = Math.floor(Math.random() * 0xffffffff)
+          fogRef.current.beginHexBatch(tileActionRef.current, gridSizeRef.current, seed)
+          const c = pixelToHex(pt.x, pt.y, gridSizeRef.current)
+          fogRef.current.addHexCell(c.col, c.row)
+          return
+        }
         const r = brushRef.current / 2 / view.current.s
         const seed = Math.floor(Math.random() * 0xffffffff)
         fogRef.current.beginStroke(t, r, seed)
@@ -196,11 +207,21 @@ function GMWorkspace() {
       onPaintMove: (pt) => {
         const t = toolRef.current
         if (t === 'pan' || t === 'pin') return
+        if (t === 'tile') {
+          const c = pixelToHex(pt.x, pt.y, gridSizeRef.current)
+          fogRef.current.addHexCell(c.col, c.row)
+          return
+        }
         fogRef.current.extendStroke(pt.x, pt.y)
       },
       onPaintEnd: () => {
-        if (toolRef.current === 'pin') return
-        fogRef.current.endStroke()
+        const t = toolRef.current
+        if (t === 'pin') return
+        if (t === 'tile') {
+          fogRef.current.endHexBatch()
+        } else {
+          fogRef.current.endStroke()
+        }
         refreshUndo()
         scheduleSave()
       },
@@ -327,10 +348,20 @@ function GMWorkspace() {
       else if (e.key === '3') setTool('semi')
       else if (e.key === '4') setTool('hide')
       else if (e.key === '5') setTool('pin')
+      else if (e.key === '6') setTool('tile')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [fit])
+
+  // the Tile tool needs the grid visible to aim at; turn it on when chosen
+  useEffect(() => {
+    if (tool === 'tile' && !gridOn) {
+      setGridOn(true)
+      scheduleSave()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool])
 
   function loadFile(file: File | undefined | null) {
     if (!file || !file.type.startsWith('image/')) return
@@ -551,6 +582,7 @@ function GMWorkspace() {
             {seg('semi', 'Semi', 'Semi-reveal: torn partial glimpse (3)')}
             {seg('hide', 'Hide', 'Re-cover with fog (4)')}
             {seg('pin', 'Pin', 'Place a pin (5)')}
+            {seg('tile', 'Tile', 'Click hex tiles to clear / cover them (6)')}
           </div>
 
           {isBrush && (
@@ -565,6 +597,30 @@ function GMWorkspace() {
                 className="h-1 w-24 cursor-pointer accent-gold"
               />
               <span className="min-w-[26px] text-right font-ui text-[11px] text-gold">{brush}</span>
+            </div>
+          )}
+
+          {tool === 'tile' && (
+            <div className="flex items-center gap-1 rounded-[9px] border border-line bg-ink-2 p-0.5">
+              {(
+                [
+                  ['reveal', 'Clear'],
+                  ['semi', 'Partial'],
+                  ['hide', 'Cover'],
+                ] as [FogTool, string][]
+              ).map(([a, label]) => (
+                <button
+                  key={a}
+                  onClick={() => setTileAction(a)}
+                  className={`rounded-[7px] border px-3 py-1.5 font-ui text-[13px] font-medium transition ${
+                    tileAction === a
+                      ? 'border-ochre bg-gradient-to-b from-[#3f2e1a] to-[#30230f] text-gold'
+                      : 'border-transparent text-bone hover:bg-[#352818]'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           )}
 
