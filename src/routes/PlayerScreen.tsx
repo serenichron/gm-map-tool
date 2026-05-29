@@ -271,8 +271,8 @@ export function PlayerScreen() {
                 width={pub.width}
                 height={pub.height}
                 size={pub.grid.size}
-                color="rgba(232,183,94,0.16)"
-                color2="rgba(110,74,28,0.16)"
+                color="rgba(232,183,94,0.05)"
+                color2="rgba(153,112,51,0.05)"
               />
             )}
             <div className="pointer-events-none absolute left-0 top-0" style={{ width: pub.width, height: pub.height }}>
