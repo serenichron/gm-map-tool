@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react'
 
-/** Draw a pointy-top hexagon grid as a single stroked path (cheap). */
+const rot = (x: number, y: number, a: number) => ({
+  x: x * Math.cos(a) - y * Math.sin(a),
+  y: x * Math.sin(a) + y * Math.cos(a),
+})
+
+/** Draw a pointy-top hexagon grid, rotated by `angleDeg`, as one stroked path. */
 function drawHexGrid(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -9,27 +14,48 @@ function drawHexGrid(
   color: string,
   color2: string,
   lineWidth: number,
+  angleDeg: number,
 ) {
   ctx.clearRect(0, 0, w, h)
   if (r < 6) return
-  const colW = Math.sqrt(3) * r // horizontal centre spacing
-  const rowH = 1.5 * r // vertical centre spacing
-  // repeating gold -> dark -> gold sheen across the grid (golden shine). Smaller
-  // bands (~repeat every ~280px) so the shimmer recurs across the map. The per-
-  // colour alpha (set in the rgba stops) gives the lines their transparency.
-  const grad = ctx.createLinearGradient(0, 0, w, h)
-  const cycles = Math.max(3, Math.round(Math.hypot(w, h) / 280))
+  const a = (angleDeg * Math.PI) / 180
+  const colW = Math.sqrt(3) * r
+  const rowH = 1.5 * r
+
+  ctx.save()
+  ctx.rotate(a)
+  // the region of (rotated) lattice space that maps onto the canvas
+  const corners = [
+    [0, 0],
+    [w, 0],
+    [0, h],
+    [w, h],
+  ].map(([x, y]) => rot(x, y, -a))
+  const minX = Math.min(...corners.map((c) => c.x))
+  const maxX = Math.max(...corners.map((c) => c.x))
+  const minY = Math.min(...corners.map((c) => c.y))
+  const maxY = Math.max(...corners.map((c) => c.y))
+
+  // repeating gold→dark→gold sheen across the drawn span
+  const grad = ctx.createLinearGradient(minX, minY, maxX, maxY)
+  const cycles = Math.max(3, Math.round(Math.hypot(maxX - minX, maxY - minY) / 280))
   for (let i = 0; i <= cycles; i++) {
     grad.addColorStop(i / cycles, color)
     if (i < cycles) grad.addColorStop((i + 0.5) / cycles, color2)
   }
   ctx.strokeStyle = grad
   ctx.lineWidth = lineWidth
+
+  const rowStart = Math.floor(minY / rowH) - 1
+  const rowEnd = Math.ceil(maxY / rowH) + 1
+  const colStart = Math.floor(minX / colW) - 1
+  const colEnd = Math.ceil(maxX / colW) + 1
+
   ctx.beginPath()
-  for (let row = -1; row * rowH < h + rowH; row++) {
+  for (let row = rowStart; row <= rowEnd; row++) {
     const cy = row * rowH
-    const xoff = row % 2 ? colW / 2 : 0
-    for (let col = -1; col * colW + xoff < w + colW; col++) {
+    const xoff = ((row % 2) + 2) % 2 ? colW / 2 : 0
+    for (let col = colStart; col <= colEnd; col++) {
       const cx = col * colW + xoff
       for (let k = 0; k < 6; k++) {
         const ang = (Math.PI / 180) * (60 * k - 90)
@@ -42,17 +68,18 @@ function drawHexGrid(
     }
   }
   ctx.stroke()
-  ctx.globalAlpha = 1
+  ctx.restore()
 }
 
 /**
- * A hex-tile overlay in image space. Golden lines. Lives inside the stage so it
- * pans/zooms with the map. Redraws only when size/dimensions change.
+ * A hex-tile overlay in image space. Lives inside the stage so it pans/zooms
+ * with the map. Redraws only when its inputs change.
  */
 export function HexGrid({
   width,
   height,
   size,
+  angle = 0,
   color = 'rgba(232,183,94,0.45)', // gold
   color2 = 'rgba(153,112,51,0.45)', // dark gold (closer to the gold)
   lineWidth = 2,
@@ -60,6 +87,7 @@ export function HexGrid({
   width: number
   height: number
   size: number
+  angle?: number
   color?: string
   color2?: string
   lineWidth?: number
@@ -71,8 +99,8 @@ export function HexGrid({
     c.width = width
     c.height = height
     const ctx = c.getContext('2d')
-    if (ctx) drawHexGrid(ctx, width, height, size, color, color2, lineWidth)
-  }, [width, height, size, color, color2, lineWidth])
+    if (ctx) drawHexGrid(ctx, width, height, size, color, color2, lineWidth, angle)
+  }, [width, height, size, angle, color, color2, lineWidth])
 
   return (
     <canvas

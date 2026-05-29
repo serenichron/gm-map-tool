@@ -38,6 +38,7 @@ export type FogHexes = {
   tool: FogTool
   size: number
   seed: number
+  angle?: number // grid orientation in degrees at clear time
   cells: HexCell[]
 }
 export type FogOp = FogStroke | FogFill | FogHexes
@@ -182,12 +183,12 @@ export class FogController {
 
   // ---- active hex-tile batch (one click/drag = one undo) ----
 
-  beginHexBatch(tool: FogTool, size: number, seed: number) {
+  beginHexBatch(tool: FogTool, size: number, seed: number, angle = 0) {
     if (!this.ctx) return
     const bctx = this.before.getContext('2d')!
     bctx.clearRect(0, 0, this.w, this.h)
     bctx.drawImage(this.canvas!, 0, 0)
-    this.currentHex = { kind: 'hexes', tool, size, seed, cells: [] }
+    this.currentHex = { kind: 'hexes', tool, size, seed, angle, cells: [] }
   }
 
   addHexCell(col: number, row: number) {
@@ -241,16 +242,17 @@ export class FogController {
   }
 
   private applyHexes(op: FogHexes) {
-    for (const cell of op.cells) this.applyHexCell(op.tool, cell.col, cell.row, op.size, op.seed)
+    for (const cell of op.cells)
+      this.applyHexCell(op.tool, cell.col, cell.row, op.size, op.seed, op.angle ?? 0)
   }
 
-  private applyHexCell(tool: FogTool, col: number, row: number, size: number, seed: number) {
+  private applyHexCell(tool: FogTool, col: number, row: number, size: number, seed: number, angle: number) {
     const ctx = this.ctx!
-    const c = hexCenter(col, row, size)
+    const c = hexCenter(col, row, size, angle)
     const x = c.x
     const y = c.y + size * this.hexClearShiftY // nudge clear down a touch (player)
     const rs = size * this.hexClearScale // clear radius (may bleed past the tile)
-    const verts = hexVertices(x, y, rs)
+    const verts = hexVertices(x, y, rs, angle)
     ctx.save()
     ctx.beginPath()
     verts.forEach((v, i) => (i === 0 ? ctx.moveTo(v.x, v.y) : ctx.lineTo(v.x, v.y)))
