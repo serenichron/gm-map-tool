@@ -193,16 +193,33 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
         vp.style.cursor = ''
       }
     }
-    const wheel = (e: WheelEvent) => {
-      e.preventDefault()
+    const wheelZoom = (e: WheelEvent, sensitivity: number) => {
       let delta = e.deltaY
       if (e.deltaMode === 1) delta *= 16
       else if (e.deltaMode === 2) delta *= vp.clientHeight
-      const sensitivity = e.ctrlKey ? PINCH_SENSITIVITY : WHEEL_SENSITIVITY
       let factor = Math.exp(-delta * sensitivity)
       factor = Math.max(1 / MAX_WHEEL_FACTOR, Math.min(MAX_WHEEL_FACTOR, factor))
       const rect = vp.getBoundingClientRect()
       zoomAt(e.clientX - rect.left, e.clientY - rect.top, factor)
+    }
+
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault()
+      if (e.ctrlKey) {
+        // pinch gesture → zoom
+        wheelZoom(e, PINCH_SENSITIVITY)
+        return
+      }
+      // classic mouse wheel: line/page mode, or chunky vertical-only steps → zoom.
+      // otherwise it's a trackpad two-finger swipe → pan.
+      const isMouseWheel = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50)
+      if (isMouseWheel) {
+        wheelZoom(e, WHEEL_SENSITIVITY)
+      } else {
+        view.current.ox -= e.deltaX
+        view.current.oy -= e.deltaY
+        apply()
+      }
     }
     const noCtx = (e: Event) => e.preventDefault()
 
