@@ -17,6 +17,7 @@ export type WorkingState = {
   fogOps: FogOp[]
   pins: Pin[]
   grid?: GridSettings | null
+  version?: number
 }
 
 // Each room keeps its own draft (map image + fog + pins), keyed by room id.

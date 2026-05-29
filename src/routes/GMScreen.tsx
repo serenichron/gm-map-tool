@@ -25,6 +25,13 @@ import { hasSupabase, supabase } from '../lib/supabase.ts'
 import { currentGmId, signOutGm } from '../lib/auth.ts'
 import { GmLogin } from '../components/GmLogin.tsx'
 import { createRoom, listRooms, renameRoom, deleteRoom, type Room } from '../lib/rooms.ts'
+import {
+  uploadWorkingImage,
+  saveWorkingState,
+  loadWorkingState,
+  subscribeWorkingState,
+  type CloudWorking,
+} from '../lib/working.ts'
 import type { LoadedMap } from '../lib/types.ts'
 
 type Tool = 'pan' | FogTool | 'pin' | 'tile'
@@ -128,6 +135,14 @@ function GMWorkspace() {
 
   const restoredOps = useRef<WorkingState['fogOps'] | null>(null)
   const saveTimer = useRef<number | undefined>(undefined)
+  // GM working-state live sync across the GM's own devices
+  const editorId = useRef<string>('')
+  if (!editorId.current) editorId.current = Math.random().toString(36).slice(2)
+  const lastWorkingVersion = useRef(0)
+  const workImagePathRef = useRef<string | null>(null)
+  const workUploadedBlobRef = useRef<Blob | null>(null)
+  const workSubRef = useRef<() => void>(() => {})
+  const lastLocalEdit = useRef(0)
 
   const activeRoom = rooms.find((r) => r.id === activeRoomId) ?? null
 
@@ -148,14 +163,101 @@ function GMWorkspace() {
     }
   }
 
+  // apply a draft (from local, this device's cloud, or a remote GM session)
+  function applyDraft(d: {
+    blob: Blob
+    width: number
+    height: number
+    fogOps: WorkingState['fogOps']
+    pins: Pin[]
+    grid: GridSettings | null
+    version: number
+    imagePath?: string | null
+  }) {
+    restoredOps.current = d.fogOps
+    mapBlobRef.current = d.blob
+    workUploadedBlobRef.current = d.blob
+    workImagePathRef.current = d.imagePath ?? null
+    lastWorkingVersion.current = d.version
+    uploadedBlobRef.current = null // force re-upload to the published bucket on publish
+    setPins(d.pins)
+    setGridOn(d.grid?.enabled ?? false)
+    setGridSize(d.grid?.size ?? 37)
+    setSelectedId(null)
+    setMap({ src: URL.createObjectURL(d.blob), width: d.width, height: d.height })
+  }
+
+  // push the working draft to the cloud (image once, then the light state)
+  async function saveWorkingCloud(version: number) {
+    const id = activeRoomIdRef.current
+    const m = mapRef.current
+    const blob = mapBlobRef.current
+    if (!hasSupabase || !id || id === LOCAL_ROOM || !m || !blob) return
+    if (blob !== workUploadedBlobRef.current || !workImagePathRef.current) {
+      const path = await uploadWorkingImage(id, blob)
+      if (!path) return
+      workImagePathRef.current = path
+      workUploadedBlobRef.current = blob
+    }
+    await saveWorkingState({
+      room_id: id,
+      version,
+      editor: editorId.current,
+      width: m.width,
+      height: m.height,
+      image_path: workImagePathRef.current,
+      fog: fogRef.current.getActiveOps(),
+      pins: pinsRef.current,
+      grid: { enabled: gridOnRef.current, size: gridSizeRef.current },
+    })
+  }
+
+  // a remote GM session changed the draft → adopt it (unless we just edited)
+  function onRemoteWorking(cw: CloudWorking) {
+    if (cw.editor === editorId.current) return
+    if (cw.version <= lastWorkingVersion.current) return
+    if (Date.now() - lastLocalEdit.current < 4000) return // don't clobber an active editor
+    const room = activeRoomIdRef.current
+    if (!room) return
+    void (async () => {
+      const blob = await (await fetch(cw.imageUrl)).blob()
+      if (activeRoomIdRef.current !== room) return
+      applyDraft({
+        blob,
+        width: cw.width,
+        height: cw.height,
+        fogOps: cw.fog,
+        pins: cw.pins,
+        grid: cw.grid,
+        version: cw.version,
+        imagePath: cw.imagePath,
+      })
+      void idbSet(imgKey(room), blob)
+      void idbSet(workKey(room), {
+        width: cw.width,
+        height: cw.height,
+        fogOps: cw.fog,
+        pins: cw.pins,
+        grid: cw.grid,
+        version: cw.version,
+      })
+    })()
+  }
+
   // any GM edit: mark unpublished changes + autosave the active room's draft
+  // (locally and, when signed in, to the cloud for cross-device sync)
   const scheduleSave = () => {
     setDirty(true)
+    lastLocalEdit.current = Date.now()
     clearTimeout(saveTimer.current)
     saveTimer.current = window.setTimeout(() => {
       const id = activeRoomIdRef.current
       const w = buildWorking()
-      if (id && w) void idbSet(workKey(id), w)
+      if (!id || !w) return
+      const version = Date.now()
+      lastWorkingVersion.current = version
+      void idbSet(workKey(id), { ...w, version })
+      void saveWorkingCloud(version)
     }, 400)
   }
 
@@ -163,7 +265,11 @@ function GMWorkspace() {
   const saveNow = async () => {
     const id = activeRoomIdRef.current
     const w = buildWorking()
-    if (id && w) await idbSet(workKey(id), w)
+    if (!id || !w) return
+    const version = Date.now()
+    lastWorkingVersion.current = version
+    await idbSet(workKey(id), { ...w, version })
+    await saveWorkingCloud(version)
   }
 
   const { viewportRef, stageRef, view, fit, screenToImage } = useViewport(
@@ -250,63 +356,101 @@ function GMWorkspace() {
     }
   }, [])
 
-  // when the active room changes: bind its backend and load its saved draft
+  // when the active room changes: bind backend, load the newest draft (local /
+  // this device's cloud draft / last published), and subscribe to live changes
   useEffect(() => {
     if (!activeRoomId) return
+    const room = activeRoomId
     backendRef.current =
-      hasSupabase && activeRoomId !== LOCAL_ROOM
-        ? createSupabaseBackend(activeRoomId)
-        : createLocalBackend()
+      hasSupabase && room !== LOCAL_ROOM ? createSupabaseBackend(room) : createLocalBackend()
     uploadedRef.current = null
     uploadedBlobRef.current = null
-    if (activeRoomId !== LOCAL_ROOM) localStorage.setItem(ACTIVE_ROOM_KEY, activeRoomId)
+    workImagePathRef.current = null
+    workUploadedBlobRef.current = null
+    lastWorkingVersion.current = 0
+    if (room !== LOCAL_ROOM) localStorage.setItem(ACTIVE_ROOM_KEY, room)
 
     let alive = true
     ;(async () => {
       const [img, working] = await Promise.all([
-        idbGet<Blob>(imgKey(activeRoomId)),
-        idbGet<WorkingState>(workKey(activeRoomId)),
+        idbGet<Blob>(imgKey(room)),
+        idbGet<WorkingState>(workKey(room)),
       ])
       if (!alive) return
-      if (img && working) {
-        restoredOps.current = working.fogOps
-        mapBlobRef.current = img
-        setPins(working.pins ?? [])
-        setGridOn(working.grid?.enabled ?? false)
-        setGridSize(working.grid?.size ?? 37)
-        setSelectedId(null)
-        setMap({ src: URL.createObjectURL(img), width: working.width, height: working.height })
+
+      // candidate from the local draft
+      let chosen:
+        | { blob: Blob; width: number; height: number; fogOps: WorkingState['fogOps']; pins: Pin[]; grid: GridSettings | null; version: number; imagePath?: string | null }
+        | null =
+        img && working
+          ? {
+              blob: img,
+              width: working.width,
+              height: working.height,
+              fogOps: working.fogOps,
+              pins: working.pins ?? [],
+              grid: working.grid ?? null,
+              version: working.version ?? 0,
+            }
+          : null
+
+      // a newer cloud draft (edited on another device) wins
+      if (hasSupabase && room !== LOCAL_ROOM) {
+        try {
+          const cw = await loadWorkingState(room)
+          if (alive && cw && cw.version > (chosen?.version ?? 0)) {
+            const blob = await (await fetch(cw.imageUrl)).blob()
+            if (alive)
+              chosen = {
+                blob,
+                width: cw.width,
+                height: cw.height,
+                fogOps: cw.fog,
+                pins: cw.pins,
+                grid: cw.grid,
+                version: cw.version,
+                imagePath: cw.imagePath,
+              }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      if (!alive) return
+      if (chosen) {
+        applyDraft(chosen)
+        void idbSet(imgKey(room), chosen.blob)
+        void idbSet(workKey(room), {
+          width: chosen.width,
+          height: chosen.height,
+          fogOps: chosen.fogOps,
+          pins: chosen.pins,
+          grid: chosen.grid,
+          version: chosen.version,
+        })
       } else {
-        // no local draft (new device / incognito): rebuild from the last
-        // published state in the cloud, if any, so maps follow the GM.
+        // nothing local or in a working draft: fall back to the last published
         let hydrated = false
         try {
           const snap = await backendRef.current?.requestLatest()
           if (snap && alive) {
             const blob = await (await fetch(snap.imageUrl)).blob()
             if (alive) {
-              const restoredPins = snap.pins.map((p) => ({ ...p, gmNote: '' }))
-              restoredOps.current = snap.fogOps
-              mapBlobRef.current = blob
-              setPins(restoredPins)
-              setGridOn(snap.grid?.enabled ?? false)
-              setGridSize(snap.grid?.size ?? 37)
-              setSelectedId(null)
-              setMap({ src: URL.createObjectURL(blob), width: snap.width, height: snap.height })
-              // cache locally so it loads instantly next time
-              void idbSet(imgKey(activeRoomId), blob)
-              void idbSet(workKey(activeRoomId), {
+              applyDraft({
+                blob,
                 width: snap.width,
                 height: snap.height,
                 fogOps: snap.fogOps,
-                pins: restoredPins,
+                pins: snap.pins.map((p) => ({ ...p, gmNote: '' })),
                 grid: snap.grid ?? null,
+                version: 0,
               })
               hydrated = true
             }
           }
         } catch {
-          /* fall through to empty */
+          /* ignore */
         }
         if (!hydrated && alive) {
           restoredOps.current = null
@@ -320,9 +464,16 @@ function GMWorkspace() {
       }
       if (alive) setDirty(false)
     })()
+
+    // live updates from the GM's other sessions
+    workSubRef.current = subscribeWorkingState(room, onRemoteWorking)
+
     return () => {
       alive = false
+      workSubRef.current()
+      workSubRef.current = () => {}
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRoomId])
 
   // release object URL on replace / unmount
@@ -395,6 +546,8 @@ function GMWorkspace() {
       restoredOps.current = null
       mapBlobRef.current = file
       uploadedBlobRef.current = null
+      workUploadedBlobRef.current = null
+      workImagePathRef.current = null
       setPins([])
       setSelectedId(null)
       setMap({ src: url, width: img.naturalWidth, height: img.naturalHeight })

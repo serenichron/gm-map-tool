@@ -34,6 +34,32 @@ create table if not exists public.published_state (
 -- If the table already existed before the grid feature, add the column:
 alter table public.published_state add column if not exists grid jsonb;
 
+-- ── gm_working_state ──────────────────────────────────────────────────────
+-- The GM's private, unpublished draft, synced across the GM's own devices.
+-- Only the room's GM can read/write it (includes GM-only pin notes).
+create table if not exists public.gm_working_state (
+  room_id     uuid primary key references public.rooms(id) on delete cascade,
+  version     bigint not null,
+  editor      text not null default '',     -- which GM session last wrote (echo guard)
+  width       integer not null,
+  height      integer not null,
+  image_path  text not null,
+  fog         jsonb not null default '[]',
+  pins        jsonb not null default '[]',   -- full pins, incl. GM notes (GM-only table)
+  grid        jsonb,
+  updated_at  timestamptz not null default now()
+);
+
+alter table public.gm_working_state enable row level security;
+
+drop policy if exists gws_all on public.gm_working_state;
+create policy gws_all on public.gm_working_state
+  for all to authenticated
+  using (exists (select 1 from public.rooms r where r.id = room_id and r.gm_id = auth.uid()))
+  with check (exists (select 1 from public.rooms r where r.id = room_id and r.gm_id = auth.uid()));
+
+alter publication supabase_realtime add table public.gm_working_state;
+
 -- ── row level security ───────────────────────────────────────────────────────
 alter table public.rooms enable row level security;
 alter table public.published_state enable row level security;
