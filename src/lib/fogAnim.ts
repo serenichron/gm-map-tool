@@ -135,8 +135,8 @@ export class FogHaze {
     ax.globalAlpha = 1
     ax.clearRect(0, 0, this.w, this.h)
 
-    // faint constant haze so even clear gaps stay slightly veiled
-    ax.globalAlpha = 0.16
+    // constant base haze fills the gaps between clouds → less transparent overall
+    ax.globalAlpha = 0.32
     ax.fillStyle = `rgba(${DUST},1)`
     ax.fillRect(0, 0, this.w, this.h)
 

@@ -149,13 +149,13 @@ export function PlayerScreen() {
       depth.width = W
       depth.height = H
       const dc = depth.getContext('2d')!
-      const shift = Math.max(16, Math.round(Math.min(W, H) * 0.03))
+      const shift = Math.max(30, Math.round(Math.min(W, H) * 0.05))
       dc.clearRect(0, 0, W, H)
-      dc.filter = `blur(${Math.round(shift * 0.6)}px)`
+      dc.filter = `blur(${Math.round(shift * 0.45)}px)`
       dc.drawImage(soft, shift, shift, W, H) // softened fog shape, offset
       dc.filter = 'none'
       dc.globalCompositeOperation = 'source-in'
-      dc.fillStyle = 'rgba(6,4,2,0.64)' // warm near-black shadow
+      dc.fillStyle = 'rgba(6,4,2,0.72)' // warm near-black shadow
       dc.fillRect(0, 0, W, H)
       dc.globalCompositeOperation = 'source-over'
     }
