@@ -20,9 +20,7 @@ import { hasSupabase } from '../lib/supabase.ts'
 import { ensureSession } from '../lib/session.ts'
 import { getRoomByCode } from '../lib/rooms.ts'
 import { addRecentRoom } from '../lib/recent.ts'
-
-const tbtn =
-  'inline-flex items-center justify-center rounded-[9px] border border-line bg-panel-2 px-3 py-2 font-ui text-[13px] font-medium text-bone transition hover:border-[#6a5232] hover:bg-[#352818]'
+import { Icon } from '../components/icons.tsx'
 
 /**
  * Build a blurred copy of the fog mask, translated by (dx,dy) WITHOUT scaling
@@ -101,7 +99,7 @@ export function PlayerScreen() {
   const lastBlobUrl = useRef<string | null>(null)
   const didFit = useRef(false)
 
-  const { viewportRef, stageRef, fit, zoomBy, screenToImage } = useViewport(
+  const { viewportRef, stageRef, fit, screenToImage } = useViewport(
     pub?.width ?? 0,
     pub?.height ?? 0,
     { onScaleChange: setZoom },
@@ -223,8 +221,11 @@ export function PlayerScreen() {
 
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
 
-  const toolbar = (
-    <div className="flex flex-1 items-center gap-2">
+  const iconBtn =
+    'inline-flex h-9 w-9 items-center justify-center rounded-[9px] border border-line bg-panel-2 text-bone transition hover:border-[#6a5232] hover:bg-[#352818]'
+
+  const topRight = (
+    <div className="flex items-center gap-2">
       <span
         className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] ${
           connected ? 'border-teal-dim bg-teal/10 text-teal' : 'border-line text-bone-dim'
@@ -233,28 +234,21 @@ export function PlayerScreen() {
       >
         ● {connected ? 'live' : '…'}
       </span>
-      <div className="flex-1" />
       {pub && (
-        <div className="flex items-center gap-1.5">
-          <button className={tbtn} onClick={() => zoomBy(1 / 1.2)} title="Zoom out">
-            −
-          </button>
-          <span className="min-w-[42px] text-center font-ui text-[11px] text-bone-dim">
+        <>
+          <span className="min-w-[40px] text-center font-ui text-[11px] text-bone-dim">
             {Math.round(zoom * 100)}%
           </span>
-          <button className={tbtn} onClick={() => zoomBy(1.2)} title="Zoom in">
-            +
+          <button className={iconBtn} onClick={() => fit()} title="Fit map to screen">
+            <Icon name="fit" />
           </button>
-          <button className={tbtn} onClick={() => fit()} title="Fit map to screen">
-            Fit
-          </button>
-        </div>
+        </>
       )}
     </div>
   )
 
   return (
-    <AppShell role="player" toolbar={toolbar}>
+    <AppShell role="player" topRight={topRight}>
       <div className="relative flex flex-1 bg-[radial-gradient(130%_100%_at_50%_30%,#241a11_0%,#140e08_70%,#0a0704_100%)]">
         {pub ? (
           <Viewport

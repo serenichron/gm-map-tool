@@ -4,17 +4,21 @@ import { RefreshButton } from './RefreshButton.tsx'
 
 type Role = 'gm' | 'player'
 
+const APP_ICON = `${import.meta.env.BASE_URL}icons/icon-64.png`
+
 /**
- * The app frame both roles share: a worn top bar with the brand and a role chip,
- * a slot for role-specific toolbar controls, and the workspace below.
- * Canvas, fog, pins and the like mount into `children` in later milestones.
+ * App frame. A slim top row carries identity + session controls (`topRight`);
+ * an optional second row (`toolbar`) holds the editing tools. Both rows wrap
+ * gracefully on small screens. The workspace fills the rest.
  */
 export function AppShell({
   role,
+  topRight,
   toolbar,
   children,
 }: {
   role: Role
+  topRight?: ReactNode
   toolbar?: ReactNode
   children: ReactNode
 }) {
@@ -25,23 +29,33 @@ export function AppShell({
 
   return (
     <div className="fixed inset-0 flex flex-col">
-      <header className="z-20 flex min-h-[54px] flex-none flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-line bg-gradient-to-b from-[#2c2016] to-panel px-3.5 py-2 shadow-[0_2px_0_rgba(0,0,0,.3)]">
-        <Link to="/" className="mr-1 flex flex-col leading-none whitespace-nowrap">
-          <span className="font-display text-[18px] font-extrabold tracking-[0.01em] text-bone">
-            Worldsmith
+      <header className="z-20 flex-none border-b border-line bg-gradient-to-b from-[#2c2016] to-panel shadow-[0_2px_0_rgba(0,0,0,.3)]">
+        {/* top row: identity + session */}
+        <div className="flex min-h-[52px] flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-1.5">
+          <Link to="/" className="flex items-center gap-2 whitespace-nowrap">
+            <img src={APP_ICON} alt="" className="h-7 w-7 rounded-[7px]" />
+            <span className="font-display text-[17px] font-extrabold tracking-[0.01em] text-bone">
+              Worldsmith
+            </span>
+          </Link>
+          <span
+            className={`rounded-full border px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${chip}`}
+          >
+            {role === 'gm' ? 'GM' : 'Player'}
           </span>
-          <span className="mt-[3px] font-ui text-[9.5px] uppercase tracking-[0.28em] text-ochre">
-            GM toolkit
-          </span>
-        </Link>
-        <span
-          className={`rounded-full border px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] ${chip}`}
-        >
-          {role === 'gm' ? 'GM' : 'Player'}
-        </span>
 
-        {toolbar}
-        <RefreshButton />
+          <div className="flex-1" />
+
+          {topRight}
+          <RefreshButton />
+        </div>
+
+        {/* tools row (GM editing) */}
+        {toolbar && (
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-line bg-ink-2/50 px-3 py-1.5">
+            {toolbar}
+          </div>
+        )}
       </header>
 
       <div className="relative flex min-h-0 flex-1">{children}</div>

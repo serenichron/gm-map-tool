@@ -5,6 +5,7 @@ import { PinMarker } from '../components/PinMarker.tsx'
 import { PinEditor } from '../components/PinEditor.tsx'
 import { RoomMenu } from '../components/RoomMenu.tsx'
 import { HexGrid } from '../components/HexGrid.tsx'
+import { Icon } from '../components/icons.tsx'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
 import { pixelToHex } from '../lib/hex.ts'
@@ -26,9 +27,6 @@ type Tool = 'pan' | FogTool | 'pin' | 'tile'
 const GM_FOG_OPACITY = 0.66
 const LOCAL_ROOM = 'local' // single-room id when Supabase isn't configured
 const ACTIVE_ROOM_KEY = 'stranded-active-room'
-
-const tbtn =
-  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[9px] border border-line bg-panel-2 px-3 py-2 font-ui text-[13px] font-medium text-bone transition hover:border-[#6a5232] hover:bg-[#352818] disabled:cursor-default disabled:opacity-40 disabled:hover:border-line disabled:hover:bg-panel-2'
 
 const BRUSH_CURSOR_COLOR: Record<FogTool, string> = {
   reveal: '#e0a94b',
@@ -179,7 +177,7 @@ function GMWorkspace() {
     if (id && w) await idbSet(workKey(id), w)
   }
 
-  const { viewportRef, stageRef, view, fit, zoomBy, screenToImage } = useViewport(
+  const { viewportRef, stageRef, view, fit, screenToImage } = useViewport(
     map?.width ?? 0,
     map?.height ?? 0,
     {
@@ -535,29 +533,30 @@ function GMWorkspace() {
     el.style.transform = `translate(${e.clientX - rect.left}px, ${e.clientY - rect.top}px) translate(-50%, -50%)`
   }
 
-  const seg = (t: Tool, label: string, title: string) => {
-    const active = tool === t
-    return (
-      <button
-        className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] border px-3 py-1.5 font-ui text-[13px] font-medium transition ${
-          active
-            ? 'border-ochre bg-gradient-to-b from-[#3f2e1a] to-[#30230f] text-gold'
-            : 'border-transparent text-bone hover:bg-[#352818]'
-        }`}
-        onClick={() => setTool(t)}
-        title={title}
-      >
-        {label}
-      </button>
-    )
-  }
+  const iconBtn =
+    'inline-flex h-9 w-9 items-center justify-center rounded-[9px] border border-line bg-panel-2 text-bone transition hover:border-[#6a5232] hover:bg-[#352818] disabled:opacity-35 disabled:cursor-default disabled:hover:border-line disabled:hover:bg-panel-2'
 
-  const toolbar = (
-    <div className="flex flex-1 flex-wrap items-center gap-2">
-      <button className={tbtn} onClick={pickFile} title="Load a map image">
-        Map
-      </button>
+  const toolIcon = (t: Tool, icon: string, title: string) => (
+    <button
+      key={t}
+      onClick={() => setTool(t)}
+      title={title}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-[7px] border transition ${
+        tool === t
+          ? 'border-ochre bg-gradient-to-b from-[#3f2e1a] to-[#30230f] text-gold'
+          : 'border-transparent text-bone hover:bg-[#352818]'
+      }`}
+    >
+      <Icon name={icon} />
+    </button>
+  )
 
+  // top row: load map, room, share, publish
+  const topRight = (
+    <div className="flex items-center gap-2">
+      <button className={iconBtn} onClick={pickFile} title="Load a map image">
+        <Icon name="map" />
+      </button>
       {activeRoom && (
         <>
           <RoomMenu
@@ -568,150 +567,142 @@ function GMWorkspace() {
             onRename={rename}
             onDelete={removeRoom}
           />
-          <button className={tbtn} onClick={copyPlayerLink} title="Copy the player join link">
-            {copied ? 'Copied' : 'Copy link'}
+          <button className={iconBtn} onClick={() => void copyPlayerLink()} title="Copy the player join link">
+            <Icon name={copied ? 'check' : 'copy'} />
           </button>
         </>
       )}
-
       {map && (
-        <>
-          <div className="mx-1 flex items-center gap-1 rounded-[9px] border border-line bg-ink-2 p-0.5">
-            {seg('pan', 'Pan', 'Pan / move (1)')}
-            {seg('reveal', 'Reveal', 'Reveal fog (2)')}
-            {seg('semi', 'Semi', 'Semi-reveal: torn partial glimpse (3)')}
-            {seg('hide', 'Hide', 'Re-cover with fog (4)')}
-            {seg('pin', 'Pin', 'Place a pin (5)')}
-            {seg('tile', 'Tile', 'Click hex tiles to clear / cover them (6)')}
-          </div>
-
-          {isBrush && (
-            <div className="flex items-center gap-2 px-1">
-              <span className="font-ui text-[11px] text-bone-dim">Brush</span>
-              <input
-                type="range"
-                min={20}
-                max={120}
-                value={brush}
-                onChange={(e) => setBrush(+e.target.value)}
-                className="h-1 w-24 cursor-pointer accent-gold"
-              />
-              <span className="min-w-[26px] text-right font-ui text-[11px] text-gold">{brush}</span>
-            </div>
-          )}
-
-          {tool === 'tile' && (
-            <div className="flex items-center gap-1 rounded-[9px] border border-line bg-ink-2 p-0.5">
-              {(
-                [
-                  ['reveal', 'Clear'],
-                  ['semi', 'Partial'],
-                  ['hide', 'Cover'],
-                ] as [FogTool, string][]
-              ).map(([a, label]) => (
-                <button
-                  key={a}
-                  onClick={() => setTileAction(a)}
-                  className={`rounded-[7px] border px-3 py-1.5 font-ui text-[13px] font-medium transition ${
-                    tileAction === a
-                      ? 'border-ochre bg-gradient-to-b from-[#3f2e1a] to-[#30230f] text-gold'
-                      : 'border-transparent text-bone hover:bg-[#352818]'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <button
-            className={`${tbtn} ${gridOn ? 'border-ochre text-gold' : ''}`}
-            onClick={() => {
-              setGridOn((v) => !v)
-              scheduleSave()
-            }}
-            title="Toggle a hex-tile overlay"
-          >
-            Tiles
-          </button>
-          {gridOn && (
-            <div className="flex items-center gap-2 px-1">
-              <span className="font-ui text-[11px] text-bone-dim">Size</span>
-              <input
-                type="range"
-                min={20}
-                max={87}
-                value={gridSize}
-                onChange={(e) => {
-                  setGridSize(+e.target.value)
-                  scheduleSave()
-                }}
-                className="h-1 w-24 cursor-pointer accent-gold"
-              />
-              <input
-                type="number"
-                min={10}
-                max={400}
-                value={gridSize}
-                onChange={(e) => {
-                  const v = Math.max(10, Math.min(400, Math.round(+e.target.value) || 10))
-                  setGridSize(v)
-                  scheduleSave()
-                }}
-                className="w-14 rounded-[7px] border border-line bg-[#0f0b06] px-2 py-1 text-right font-ui text-[12px] text-gold outline-none focus:border-ochre"
-              />
-            </div>
-          )}
-
-          <button className={tbtn} onClick={() => { fogRef.current.fill('covered'); refreshUndo(); scheduleSave() }} title="Cover the whole map">
-            Cover all
-          </button>
-          <button className={tbtn} onClick={() => { fogRef.current.fill('clear'); refreshUndo(); scheduleSave() }} title="Clear all fog">
-            Reveal all
-          </button>
-          <button className={tbtn} disabled={!canUndo} onClick={() => { fogRef.current.undo(); refreshUndo(); scheduleSave() }} title="Undo (Ctrl+Z)">
-            Undo
-          </button>
-          <button className={tbtn} disabled={!canRedo} onClick={() => { fogRef.current.redo(); refreshUndo(); scheduleSave() }} title="Redo (Ctrl+Shift+Z)">
-            Redo
-          </button>
-
-          <div className="flex-1" />
-
-          <div className="flex items-center gap-1.5">
-            <button className={tbtn} onClick={() => zoomBy(1 / 1.2)} title="Zoom out">
-              −
-            </button>
-            <span className="min-w-[42px] text-center font-ui text-[11px] text-bone-dim">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button className={tbtn} onClick={() => zoomBy(1.2)} title="Zoom in">
-              +
-            </button>
-            <button className={tbtn} onClick={() => fit()} title="Fit map to screen (F)">
-              Fit
-            </button>
-          </div>
-
-          <button
-            onClick={() => void publish()}
-            disabled={publishing}
-            title={dirty ? 'You have unpublished changes' : 'Players are up to date'}
-            className={`ml-1 rounded-[10px] border px-[18px] py-2.5 font-ui text-[13px] font-bold tracking-[0.02em] transition disabled:opacity-60 ${
-              dirty
-                ? 'animate-pulse border-fog-warn bg-gradient-to-b from-[#b8632f] to-[#8c481f] text-[#fff3e6]'
-                : 'border-teal bg-gradient-to-b from-teal-dim to-[#1e4744] text-[#dff2f0]'
-            }`}
-          >
-            {publishing ? 'Publishing…' : dirty ? 'Publish •' : 'Published'}
-          </button>
-        </>
+        <button
+          onClick={() => void publish()}
+          disabled={publishing}
+          title={dirty ? 'You have unpublished changes' : 'Players are up to date'}
+          className={`rounded-[10px] border px-4 py-2 font-ui text-[13px] font-bold tracking-[0.02em] transition disabled:opacity-60 ${
+            dirty
+              ? 'animate-pulse border-fog-warn bg-gradient-to-b from-[#b8632f] to-[#8c481f] text-[#fff3e6]'
+              : 'border-teal bg-gradient-to-b from-teal-dim to-[#1e4744] text-[#dff2f0]'
+          }`}
+        >
+          {publishing ? 'Publishing…' : dirty ? 'Publish •' : 'Published'}
+        </button>
       )}
     </div>
   )
 
+  // tools row (only with a map): tools, contextual options, history/fill, zoom
+  const toolbar = map ? (
+    <>
+      <div className="flex items-center gap-0.5 rounded-[10px] border border-line bg-ink-2 p-0.5">
+        {toolIcon('pan', 'pan', 'Pan / move (1)')}
+        {toolIcon('reveal', 'reveal', 'Reveal fog (2)')}
+        {toolIcon('semi', 'semi', 'Semi-reveal — torn glimpse (3)')}
+        {toolIcon('hide', 'hide', 'Re-cover with fog (4)')}
+        {toolIcon('pin', 'pin', 'Place a pin (5)')}
+        {toolIcon('tile', 'tile', 'Hex tiles (6)')}
+      </div>
+
+      {isBrush && (
+        <div className="flex items-center gap-2 rounded-[9px] border border-line bg-ink-2/60 px-2.5 py-1.5">
+          <span className="font-ui text-[11px] text-bone-dim">Brush</span>
+          <input
+            type="range"
+            min={20}
+            max={120}
+            value={brush}
+            onChange={(e) => setBrush(+e.target.value)}
+            className="h-1 w-20 cursor-pointer accent-gold"
+          />
+          <span className="min-w-[24px] text-right font-ui text-[11px] text-gold">{brush}</span>
+        </div>
+      )}
+
+      {tool === 'tile' && (
+        <div className="flex items-center gap-2 rounded-[9px] border border-line bg-ink-2/60 px-1.5 py-1">
+          <div className="flex items-center gap-0.5">
+            {(
+              [
+                ['reveal', 'Clear'],
+                ['semi', 'Partial'],
+                ['hide', 'Cover'],
+              ] as [FogTool, string][]
+            ).map(([a, label]) => (
+              <button
+                key={a}
+                onClick={() => setTileAction(a)}
+                className={`rounded-[7px] px-2.5 py-1 font-ui text-[12px] font-medium transition ${
+                  tileAction === a
+                    ? 'bg-gradient-to-b from-[#3f2e1a] to-[#30230f] text-gold'
+                    : 'text-bone hover:bg-[#352818]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <span className="font-ui text-[11px] text-bone-dim">Size</span>
+          <input
+            type="range"
+            min={20}
+            max={87}
+            value={gridSize}
+            onChange={(e) => {
+              setGridSize(+e.target.value)
+              scheduleSave()
+            }}
+            className="h-1 w-16 cursor-pointer accent-gold"
+          />
+          <input
+            type="number"
+            min={10}
+            max={400}
+            value={gridSize}
+            onChange={(e) => {
+              const v = Math.max(10, Math.min(400, Math.round(+e.target.value) || 10))
+              setGridSize(v)
+              scheduleSave()
+            }}
+            className="w-12 rounded-[6px] border border-line bg-[#0f0b06] px-1.5 py-0.5 text-right font-ui text-[12px] text-gold outline-none focus:border-ochre"
+          />
+        </div>
+      )}
+
+      <span className="mx-0.5 h-6 w-px bg-line" />
+
+      <button className={iconBtn} disabled={!canUndo} onClick={() => { fogRef.current.undo(); refreshUndo(); scheduleSave() }} title="Undo (Ctrl+Z)">
+        <Icon name="undo" />
+      </button>
+      <button className={iconBtn} disabled={!canRedo} onClick={() => { fogRef.current.redo(); refreshUndo(); scheduleSave() }} title="Redo (Ctrl+Shift+Z)">
+        <Icon name="redo" />
+      </button>
+      <button className={iconBtn} onClick={() => { fogRef.current.fill('covered'); refreshUndo(); scheduleSave() }} title="Cover the whole map">
+        <Icon name="coverAll" />
+      </button>
+      <button className={iconBtn} onClick={() => { fogRef.current.fill('clear'); refreshUndo(); scheduleSave() }} title="Clear all fog">
+        <Icon name="revealAll" />
+      </button>
+      <button
+        onClick={() => { setGridOn((v) => !v); scheduleSave() }}
+        title="Toggle the hex grid"
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-[9px] border transition ${
+          gridOn ? 'border-ochre bg-ochre/10 text-gold' : 'border-line bg-panel-2 text-bone hover:border-[#6a5232] hover:bg-[#352818]'
+        }`}
+      >
+        <Icon name="grid" />
+      </button>
+
+      <div className="flex-1" />
+
+      <span className="min-w-[40px] text-center font-ui text-[11px] text-bone-dim">
+        {Math.round(zoom * 100)}%
+      </span>
+      <button className={iconBtn} onClick={() => fit()} title="Fit to screen (F)">
+        <Icon name="fit" />
+      </button>
+    </>
+  ) : undefined
+
   return (
-    <AppShell role="gm" toolbar={toolbar}>
+    <AppShell role="gm" topRight={topRight} toolbar={toolbar}>
       <div
         ref={workspaceRef}
         className="relative flex flex-1 bg-[radial-gradient(130%_100%_at_50%_30%,#241a11_0%,#140e08_70%,#0a0704_100%)]"
