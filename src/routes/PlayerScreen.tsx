@@ -43,6 +43,9 @@ export function PlayerScreen() {
   if (!fogRef.current) fogRef.current = new FogController()
   const offscreenFog = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
   if (!offscreenFog.current) offscreenFog.current = document.createElement('canvas')
+  // a blurred copy of the fog mask — softens the fog→clear edges for both layers
+  const softMask = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
+  if (!softMask.current) softMask.current = document.createElement('canvas')
 
   const frostCanvasRef = useRef<HTMLCanvasElement>(null)
   const fogAnimRef = useRef<HTMLCanvasElement>(null)
@@ -119,15 +122,26 @@ export function PlayerScreen() {
     off.height = pub.height
     fogRef.current.attach(off, pub.width, pub.height)
     fogRef.current.setOps(pub.fogOps)
+
+    // blur the mask once → soft, diffuse fog→clear edges (radius scales with map)
+    const soft = softMask.current
+    soft.width = pub.width
+    soft.height = pub.height
+    const sc = soft.getContext('2d')!
+    sc.clearRect(0, 0, pub.width, pub.height)
+    sc.filter = `blur(${Math.max(8, Math.round(Math.min(pub.width, pub.height) * 0.012))}px)`
+    sc.drawImage(off, 0, 0, pub.width, pub.height)
+    sc.filter = 'none'
+
     frost.width = pub.width
     frost.height = pub.height
-    buildFrost(frost, off, img, pub.width, pub.height)
-    // start/refresh the drifting fog haze, masked to the same fog
+    buildFrost(frost, soft, img, pub.width, pub.height)
+    // start/refresh the drifting fog haze, masked to the same soft fog
     const anim = fogAnimRef.current
     if (anim) {
       anim.width = pub.width
       anim.height = pub.height
-      hazeRef.current.configure(anim, off, pub.width, pub.height)
+      hazeRef.current.configure(anim, soft, pub.width, pub.height)
     }
     if (!didFit.current) {
       didFit.current = true

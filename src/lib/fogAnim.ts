@@ -125,8 +125,8 @@ export class FogHaze {
     ax.globalCompositeOperation = 'source-over'
     ax.globalAlpha = 1
     ax.clearRect(0, 0, this.w, this.h)
-    // warm dust base
-    ax.fillStyle = `rgba(${FOG_RGB},0.72)`
+    // warm dust base — a touch translucent so it reads as diffuse haze
+    ax.fillStyle = `rgba(${FOG_RGB},0.58)`
     ax.fillRect(0, 0, this.w, this.h)
     // two slow drifting layers, opposite directions → rolling billows
     this.layer(ax, t * 0.010, t * 0.006, 4, 0.9)
