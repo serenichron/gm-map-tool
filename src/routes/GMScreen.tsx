@@ -536,20 +536,26 @@ function GMWorkspace() {
   const iconBtn =
     'inline-flex h-9 w-9 items-center justify-center rounded-[9px] border border-line bg-panel-2 text-bone transition hover:border-[#6a5232] hover:bg-[#352818] disabled:opacity-35 disabled:cursor-default disabled:hover:border-line disabled:hover:bg-panel-2'
 
-  const toolIcon = (t: Tool, icon: string, title: string) => (
+  // primary mode button (icon + label; label hidden on small screens)
+  const modeBtn = (t: Tool, icon: string, label: string, title: string) => (
     <button
       key={t}
       onClick={() => setTool(t)}
       title={title}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-[7px] border transition ${
+      className={`inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 font-ui text-[13px] font-medium transition ${
         tool === t
-          ? 'border-ochre bg-gradient-to-b from-[#3f2e1a] to-[#30230f] text-gold'
-          : 'border-transparent text-bone hover:bg-[#352818]'
+          ? 'bg-gradient-to-b from-[#3f2e1a] to-[#30230f] text-gold shadow-[inset_0_0_0_1px_rgba(224,169,75,.55)]'
+          : 'text-bone-dim hover:bg-[#352818] hover:text-bone'
       }`}
     >
-      <Icon name={icon} />
+      <Icon name={icon} className="h-[17px] w-[17px]" />
+      <span className="hidden md:inline">{label}</span>
     </button>
   )
+
+  // lighter ghost button for secondary utilities
+  const utilBtn =
+    'inline-flex h-8 w-8 items-center justify-center rounded-md text-bone-dim transition hover:bg-[#352818] hover:text-bone disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-bone-dim'
 
   // top row: load map, room, share, publish
   const topRight = (
@@ -589,36 +595,44 @@ function GMWorkspace() {
     </div>
   )
 
-  // tools row (only with a map): tools, contextual options, history/fill, zoom
+  // a recessed inset panel for the active tool's options
+  const optionPanel = 'flex items-center gap-2.5 rounded-[10px] bg-black/25 px-3 py-1.5 ring-1 ring-inset ring-line/70'
+  const optionLabel = 'font-ui text-[10px] font-semibold uppercase tracking-[0.12em] text-ochre/80'
+  const vDivider = 'mx-1.5 h-6 w-px shrink-0 bg-line/70'
+
+  // tools row (only with a map): mode picker · contextual options · utilities
   const toolbar = map ? (
     <>
-      <div className="flex items-center gap-0.5 rounded-[10px] border border-line bg-ink-2 p-0.5">
-        {toolIcon('pan', 'pan', 'Pan / move (1)')}
-        {toolIcon('reveal', 'reveal', 'Reveal fog (2)')}
-        {toolIcon('semi', 'semi', 'Semi-reveal — torn glimpse (3)')}
-        {toolIcon('hide', 'hide', 'Re-cover with fog (4)')}
-        {toolIcon('pin', 'pin', 'Place a pin (5)')}
-        {toolIcon('tile', 'tile', 'Hex tiles (6)')}
+      {/* PRIMARY — what the pointer does */}
+      <div className="flex items-center gap-0.5 rounded-[11px] border border-line bg-ink-2 p-1">
+        {modeBtn('pan', 'pan', 'Pan', 'Pan / move (1)')}
+        {modeBtn('reveal', 'reveal', 'Reveal', 'Reveal fog (2)')}
+        {modeBtn('semi', 'semi', 'Semi', 'Semi-reveal — torn glimpse (3)')}
+        {modeBtn('hide', 'hide', 'Hide', 'Re-cover with fog (4)')}
+        {modeBtn('pin', 'pin', 'Pin', 'Place a pin (5)')}
+        {modeBtn('tile', 'tile', 'Tile', 'Hex tiles (6)')}
       </div>
 
+      {/* CONTEXTUAL — options for the active tool */}
       {isBrush && (
-        <div className="flex items-center gap-2 rounded-[9px] border border-line bg-ink-2/60 px-2.5 py-1.5">
-          <span className="font-ui text-[11px] text-bone-dim">Brush</span>
+        <div className={optionPanel}>
+          <span className={optionLabel}>Brush</span>
           <input
             type="range"
             min={20}
             max={120}
             value={brush}
             onChange={(e) => setBrush(+e.target.value)}
-            className="h-1 w-20 cursor-pointer accent-gold"
+            className="h-1 w-24 cursor-pointer accent-gold"
           />
           <span className="min-w-[24px] text-right font-ui text-[11px] text-gold">{brush}</span>
         </div>
       )}
 
       {tool === 'tile' && (
-        <div className="flex items-center gap-2 rounded-[9px] border border-line bg-ink-2/60 px-1.5 py-1">
-          <div className="flex items-center gap-0.5">
+        <div className={optionPanel}>
+          <span className={optionLabel}>Tile</span>
+          <div className="flex items-center gap-0.5 rounded-md bg-ink-2 p-0.5">
             {(
               [
                 ['reveal', 'Clear'],
@@ -629,17 +643,16 @@ function GMWorkspace() {
               <button
                 key={a}
                 onClick={() => setTileAction(a)}
-                className={`rounded-[7px] px-2.5 py-1 font-ui text-[12px] font-medium transition ${
+                className={`rounded px-2.5 py-1 font-ui text-[12px] font-medium transition ${
                   tileAction === a
                     ? 'bg-gradient-to-b from-[#3f2e1a] to-[#30230f] text-gold'
-                    : 'text-bone hover:bg-[#352818]'
+                    : 'text-bone-dim hover:bg-[#352818] hover:text-bone'
                 }`}
               >
                 {label}
               </button>
             ))}
           </div>
-          <span className="font-ui text-[11px] text-bone-dim">Size</span>
           <input
             type="range"
             min={20}
@@ -666,38 +679,48 @@ function GMWorkspace() {
         </div>
       )}
 
-      <span className="mx-0.5 h-6 w-px bg-line" />
-
-      <button className={iconBtn} disabled={!canUndo} onClick={() => { fogRef.current.undo(); refreshUndo(); scheduleSave() }} title="Undo (Ctrl+Z)">
-        <Icon name="undo" />
-      </button>
-      <button className={iconBtn} disabled={!canRedo} onClick={() => { fogRef.current.redo(); refreshUndo(); scheduleSave() }} title="Redo (Ctrl+Shift+Z)">
-        <Icon name="redo" />
-      </button>
-      <button className={iconBtn} onClick={() => { fogRef.current.fill('covered'); refreshUndo(); scheduleSave() }} title="Cover the whole map">
-        <Icon name="coverAll" />
-      </button>
-      <button className={iconBtn} onClick={() => { fogRef.current.fill('clear'); refreshUndo(); scheduleSave() }} title="Clear all fog">
-        <Icon name="revealAll" />
-      </button>
-      <button
-        onClick={() => { setGridOn((v) => !v); scheduleSave() }}
-        title="Toggle the hex grid"
-        className={`inline-flex h-9 w-9 items-center justify-center rounded-[9px] border transition ${
-          gridOn ? 'border-ochre bg-ochre/10 text-gold' : 'border-line bg-panel-2 text-bone hover:border-[#6a5232] hover:bg-[#352818]'
-        }`}
-      >
-        <Icon name="grid" />
-      </button>
-
       <div className="flex-1" />
 
-      <span className="min-w-[40px] text-center font-ui text-[11px] text-bone-dim">
-        {Math.round(zoom * 100)}%
-      </span>
-      <button className={iconBtn} onClick={() => fit()} title="Fit to screen (F)">
-        <Icon name="fit" />
-      </button>
+      {/* SECONDARY — utilities, grouped and lighter */}
+      <div className="flex items-center gap-0.5">
+        <button className={utilBtn} disabled={!canUndo} onClick={() => { fogRef.current.undo(); refreshUndo(); scheduleSave() }} title="Undo (Ctrl+Z)">
+          <Icon name="undo" />
+        </button>
+        <button className={utilBtn} disabled={!canRedo} onClick={() => { fogRef.current.redo(); refreshUndo(); scheduleSave() }} title="Redo (Ctrl+Shift+Z)">
+          <Icon name="redo" />
+        </button>
+      </div>
+
+      <span className={vDivider} />
+
+      <div className="flex items-center gap-0.5">
+        <button className={utilBtn} onClick={() => { fogRef.current.fill('covered'); refreshUndo(); scheduleSave() }} title="Cover the whole map">
+          <Icon name="coverAll" />
+        </button>
+        <button className={utilBtn} onClick={() => { fogRef.current.fill('clear'); refreshUndo(); scheduleSave() }} title="Clear all fog">
+          <Icon name="revealAll" />
+        </button>
+      </div>
+
+      <span className={vDivider} />
+
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => { setGridOn((v) => !v); scheduleSave() }}
+          title="Toggle the hex grid"
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition ${
+            gridOn ? 'bg-ochre/15 text-gold' : 'text-bone-dim hover:bg-[#352818] hover:text-bone'
+          }`}
+        >
+          <Icon name="grid" />
+        </button>
+        <span className="min-w-[38px] text-center font-ui text-[11px] text-bone-dim">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button className={utilBtn} onClick={() => fit()} title="Fit to screen (F)">
+          <Icon name="fit" />
+        </button>
+      </div>
     </>
   ) : undefined
 
