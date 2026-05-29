@@ -36,6 +36,7 @@ export function PlayerScreen() {
   const [pins, setPins] = useState<PublicPin[]>([])
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fogReady, setFogReady] = useState(false)
 
   const lastVersion = useRef(0)
   const lastBlobUrl = useRef<string | null>(null)
@@ -143,6 +144,7 @@ export function PlayerScreen() {
               fogOps={pub.fogOps}
               grid={pub.grid}
               pins={pins}
+              onReady={() => setFogReady(true)}
             />
           </Viewport>
         ) : (
@@ -161,6 +163,18 @@ export function PlayerScreen() {
                 </p>
               </>
             )}
+          </div>
+        )}
+
+        {/* hold a curtain over the map until the fog has actually painted, so the
+            bare map is never shown and there's no re-apply flash */}
+        {pub && (
+          <div
+            className={`pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[#16110b] transition-opacity duration-500 ${
+              fogReady ? 'opacity-0' : 'opacity-100'
+            }`}
+          >
+            <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-[#3a2c1c] border-t-ochre [animation-duration:1.4s]" />
           </div>
         )}
       </div>

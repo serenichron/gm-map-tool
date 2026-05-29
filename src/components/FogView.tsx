@@ -50,6 +50,7 @@ export function FogView({
   fogOps,
   grid,
   pins,
+  onReady,
 }: {
   width: number
   height: number
@@ -57,8 +58,12 @@ export function FogView({
   fogOps: FogOp[]
   grid: GridSettings | null
   pins: PublicPin[]
+  onReady?: () => void
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const readyRef = useRef(false)
+  const onReadyRef = useRef(onReady)
+  onReadyRef.current = onReady
 
   const fogRef = useRef<FogController>(null as unknown as FogController)
   if (!fogRef.current) {
@@ -86,9 +91,17 @@ export function FogView({
     const img = mapImgRef.current
     if (!frost || !img || !W || !H) return
 
+    // only resize when it actually changed — resizing clears the canvas, which
+    // would flash on every re-render / live update
+    const fitCanvas = (cv: HTMLCanvasElement) => {
+      if (cv.width !== W || cv.height !== H) {
+        cv.width = W
+        cv.height = H
+      }
+    }
+
     const off = offscreenFog.current
-    off.width = W
-    off.height = H
+    fitCanvas(off)
     fogRef.current.attach(off, W, H)
     fogRef.current.setOps(ops)
 
@@ -101,8 +114,7 @@ export function FogView({
 
     const depth = depthRef.current
     if (depth) {
-      depth.width = W
-      depth.height = H
+      fitCanvas(depth)
       const dc = depth.getContext('2d')!
       dc.clearRect(0, 0, W, H)
       dc.filter = `blur(${Math.round(shift * 0.45)}px)`
@@ -114,15 +126,18 @@ export function FogView({
       dc.globalCompositeOperation = 'source-over'
     }
 
-    frost.width = W
-    frost.height = H
+    fitCanvas(frost)
     buildFrost(frost, cover, img, W, H)
 
     const anim = fogAnimRef.current
     if (anim) {
-      anim.width = W
-      anim.height = H
+      fitCanvas(anim)
       hazeRef.current.configure(anim, cover, W, H)
+    }
+
+    if (!readyRef.current) {
+      readyRef.current = true
+      onReadyRef.current?.()
     }
   }, [])
 
