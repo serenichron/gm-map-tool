@@ -20,7 +20,7 @@ export function buildFrost(
   // a faint, heavily blurred hint of the ground; the animated haze (fogAnim)
   // layers the warm drifting dust on top of this. Draw the map overflowing the
   // edges by the blur radius so the blur doesn't fade the outer margin.
-  const pad = 22
+  const pad = 48
   ctx.filter = 'blur(18px) brightness(0.4) saturate(0.8)'
   ctx.drawImage(mapImg, -pad, -pad, w + 2 * pad, h + 2 * pad)
   ctx.filter = 'none'

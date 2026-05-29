@@ -4,6 +4,7 @@ import { Viewport } from '../components/Viewport.tsx'
 import { PinMarker } from '../components/PinMarker.tsx'
 import { PinEditor } from '../components/PinEditor.tsx'
 import { RoomMenu } from '../components/RoomMenu.tsx'
+import { HexGrid } from '../components/HexGrid.tsx'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
 import { newPinId, type Pin } from '../lib/pins.ts'
@@ -97,6 +98,8 @@ function GMWorkspace() {
   const [canRedo, setCanRedo] = useState(false)
   const [pins, setPins] = useState<Pin[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [gridOn, setGridOn] = useState(false)
+  const [gridSize, setGridSize] = useState(70)
   const [dirty, setDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [rooms, setRooms] = useState<Room[]>([])
@@ -125,6 +128,10 @@ function GMWorkspace() {
   mapRef.current = map
   const pinsRef = useRef(pins)
   pinsRef.current = pins
+  const gridOnRef = useRef(gridOn)
+  gridOnRef.current = gridOn
+  const gridSizeRef = useRef(gridSize)
+  gridSizeRef.current = gridSize
   const activeRoomIdRef = useRef(activeRoomId)
   activeRoomIdRef.current = activeRoomId
 
@@ -141,7 +148,13 @@ function GMWorkspace() {
   const buildWorking = (): WorkingState | null => {
     const m = mapRef.current
     if (!m) return null
-    return { width: m.width, height: m.height, fogOps: fogRef.current.getActiveOps(), pins: pinsRef.current }
+    return {
+      width: m.width,
+      height: m.height,
+      fogOps: fogRef.current.getActiveOps(),
+      pins: pinsRef.current,
+      grid: { enabled: gridOnRef.current, size: gridSizeRef.current },
+    }
   }
 
   // any GM edit: mark unpublished changes + autosave the active room's draft
@@ -248,12 +261,16 @@ function GMWorkspace() {
         restoredOps.current = working.fogOps
         mapBlobRef.current = img
         setPins(working.pins ?? [])
+        setGridOn(working.grid?.enabled ?? false)
+        setGridSize(working.grid?.size ?? 70)
         setSelectedId(null)
         setMap({ src: URL.createObjectURL(img), width: working.width, height: working.height })
       } else {
         restoredOps.current = null
         mapBlobRef.current = null
         setPins([])
+        setGridOn(false)
+        setGridSize(70)
         setSelectedId(null)
         setMap(null)
       }
@@ -417,6 +434,7 @@ function GMWorkspace() {
         imageRef: uploadedRef.current!,
         fogOps: fogRef.current.getActiveOps(),
         pins: toPublicPins(pinsRef.current),
+        grid: { enabled: gridOnRef.current, size: gridSizeRef.current },
       })
       setDirty(false)
     } catch (e) {
@@ -550,6 +568,33 @@ function GMWorkspace() {
             </div>
           )}
 
+          <button
+            className={`${tbtn} ${gridOn ? 'border-ochre text-gold' : ''}`}
+            onClick={() => {
+              setGridOn((v) => !v)
+              scheduleSave()
+            }}
+            title="Toggle a hex-tile overlay"
+          >
+            Tiles
+          </button>
+          {gridOn && (
+            <div className="flex items-center gap-2 px-1">
+              <span className="font-ui text-[11px] text-bone-dim">Size</span>
+              <input
+                type="range"
+                min={30}
+                max={200}
+                value={gridSize}
+                onChange={(e) => {
+                  setGridSize(+e.target.value)
+                  scheduleSave()
+                }}
+                className="h-1 w-24 cursor-pointer accent-gold"
+              />
+            </div>
+          )}
+
           <button className={tbtn} onClick={() => { fogRef.current.fill('covered'); refreshUndo(); scheduleSave() }} title="Cover the whole map">
             Cover all
           </button>
@@ -632,6 +677,7 @@ function GMWorkspace() {
                 className="pointer-events-none absolute left-0 top-0"
                 style={{ width: map.width, height: map.height, opacity: GM_FOG_OPACITY }}
               />
+              {gridOn && <HexGrid width={map.width} height={map.height} size={gridSize} alpha={0.55} />}
               <div className="pointer-events-none absolute left-0 top-0" style={{ width: map.width, height: map.height }}>
                 {pins.map((p) => (
                   <PinMarker

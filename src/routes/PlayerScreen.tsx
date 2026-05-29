@@ -4,6 +4,7 @@ import { AppShell } from '../components/AppShell.tsx'
 import { Viewport } from '../components/Viewport.tsx'
 import { PinMarker } from '../components/PinMarker.tsx'
 import { PinPopover } from '../components/PinPopover.tsx'
+import { HexGrid } from '../components/HexGrid.tsx'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController } from '../lib/fog.ts'
 import { buildFrost } from '../lib/frost.ts'
@@ -22,7 +23,14 @@ import { getRoomByCode } from '../lib/rooms.ts'
 const tbtn =
   'inline-flex items-center justify-center rounded-[9px] border border-line bg-panel-2 px-3 py-2 font-ui text-[13px] font-medium text-bone transition hover:border-[#6a5232] hover:bg-[#352818]'
 
-type Pub = { version: number; width: number; height: number; src: string; fogOps: Snapshot['fogOps'] }
+type Pub = {
+  version: number
+  width: number
+  height: number
+  src: string
+  fogOps: Snapshot['fogOps']
+  grid: Snapshot['grid']
+}
 
 /**
  * Player view. Read-only. Joins a room by code (or the local backend with none),
@@ -77,7 +85,14 @@ export function PlayerScreen() {
         lastBlobUrl.current = s.imageUrl.startsWith('blob:') ? s.imageUrl : null
         mapImgRef.current = img
         setPins(s.pins)
-        setPub({ version: s.version, width: s.width, height: s.height, src: s.imageUrl, fogOps: s.fogOps })
+        setPub({
+          version: s.version,
+          width: s.width,
+          height: s.height,
+          src: s.imageUrl,
+          fogOps: s.fogOps,
+          grid: s.grid,
+        })
       }
       img.onerror = () => setError('Could not load the map image.')
       img.src = s.imageUrl
@@ -135,9 +150,11 @@ export function PlayerScreen() {
     soft.width = W
     soft.height = H
     const sc = soft.getContext('2d')!
+    // overflow well past the canvas so the blur never fades the outer margin
+    const over = blurR * 3
     sc.clearRect(0, 0, W, H)
     sc.filter = `blur(${blurR}px)`
-    sc.drawImage(off, -blurR, -blurR, W + 2 * blurR, H + 2 * blurR)
+    sc.drawImage(off, -over, -over, W + 2 * over, H + 2 * over)
     sc.filter = 'none'
 
     // depth: a real drop shadow of the whole fog, sitting UNDER it on the ground.
@@ -228,6 +245,9 @@ export function PlayerScreen() {
               className="pointer-events-none absolute left-0 top-0"
               style={{ width: pub.width, height: pub.height }}
             />
+            {pub.grid?.enabled && (
+              <HexGrid width={pub.width} height={pub.height} size={pub.grid.size} alpha={0.5} />
+            )}
             <canvas
               ref={frostCanvasRef}
               width={pub.width}

@@ -6,6 +6,7 @@
  */
 import type { FogOp } from './fog.ts'
 import type { Pin } from './pins.ts'
+import type { GridSettings } from './types.ts'
 
 const DB_NAME = 'stranded-field-map'
 const STORE = 'kv'
@@ -15,6 +16,7 @@ export type WorkingState = {
   height: number
   fogOps: FogOp[]
   pins: Pin[]
+  grid?: GridSettings | null
 }
 
 // Each room keeps its own draft (map image + fog + pins), keyed by room id.

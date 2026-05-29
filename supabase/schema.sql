@@ -27,8 +27,12 @@ create table if not exists public.published_state (
   image_path  text not null,                 -- object path in the 'maps' bucket
   fog         jsonb not null default '[]',   -- ordered fog ops
   pins        jsonb not null default '[]',   -- public pins (no GM notes)
+  grid        jsonb,                          -- optional hex-tile overlay { enabled, size }
   updated_at  timestamptz not null default now()
 );
+
+-- If the table already existed before the grid feature, add the column:
+alter table public.published_state add column if not exists grid jsonb;
 
 -- ── row level security ───────────────────────────────────────────────────────
 alter table public.rooms enable row level security;

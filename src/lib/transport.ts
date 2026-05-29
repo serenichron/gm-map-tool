@@ -11,6 +11,7 @@
  */
 import type { FogOp } from './fog.ts'
 import type { CrystalDomain, Pin } from './pins.ts'
+import type { GridSettings } from './types.ts'
 import { idbGet, idbSet } from './storage.ts'
 import { supabase } from './supabase.ts'
 
@@ -35,6 +36,7 @@ export type PublishInput = {
   imageRef: string
   fogOps: FogOp[]
   pins: PublicPin[]
+  grid: GridSettings | null
 }
 
 /** What a player receives. imageUrl is directly usable by <img>/canvas. */
@@ -45,6 +47,7 @@ export type Snapshot = {
   imageUrl: string
   fogOps: FogOp[]
   pins: PublicPin[]
+  grid: GridSettings | null
 }
 
 export interface Backend {
@@ -80,8 +83,8 @@ export function createLocalBackend(): Backend {
       return LOCAL_IMAGE
     },
     async publish(input) {
-      const { version, width, height, fogOps, pins } = input
-      await idbSet(LOCAL_STATE, { version, width, height, fogOps, pins } satisfies LocalState)
+      const { version, width, height, fogOps, pins, grid } = input
+      await idbSet(LOCAL_STATE, { version, width, height, fogOps, pins, grid } satisfies LocalState)
       bc?.postMessage({ type: 'published', version })
     },
     requestLatest: readSnapshot,
@@ -119,6 +122,7 @@ export function createSupabaseBackend(roomId: string): Backend {
     image_path: string
     fog: FogOp[]
     pins: PublicPin[]
+    grid: GridSettings | null
   }): Snapshot => ({
     version: Number(row.version),
     width: row.width,
@@ -126,6 +130,7 @@ export function createSupabaseBackend(roomId: string): Backend {
     imageUrl: publicUrl(row.image_path),
     fogOps: row.fog ?? [],
     pins: row.pins ?? [],
+    grid: row.grid ?? null,
   })
 
   return {
@@ -139,7 +144,7 @@ export function createSupabaseBackend(roomId: string): Backend {
     },
 
     async publish(input) {
-      const { error } = await sb.from('published_state').upsert({
+      const base = {
         room_id: roomId,
         version: input.version,
         width: input.width,
@@ -148,14 +153,19 @@ export function createSupabaseBackend(roomId: string): Backend {
         fog: input.fogOps,
         pins: input.pins,
         updated_at: new Date().toISOString(),
-      })
-      if (error) throw error
+      }
+      let res = await sb.from('published_state').upsert({ ...base, grid: input.grid })
+      // tolerate the grid column not existing yet (publish still works without it)
+      if (res.error && /grid/i.test(res.error.message)) {
+        res = await sb.from('published_state').upsert(base)
+      }
+      if (res.error) throw res.error
     },
 
     async requestLatest() {
       const { data } = await sb
         .from('published_state')
-        .select('version,width,height,image_path,fog,pins')
+        .select('*')
         .eq('room_id', roomId)
         .maybeSingle()
       return data ? rowToSnapshot(data) : undefined
