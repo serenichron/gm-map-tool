@@ -2,17 +2,18 @@
  * Animated drifting fog for the player view.
  *
  * The fog *shape* stays locked to the published data (the mask canvas). This only
- * animates the *look*: a warm dust base with two layers of slow-drifting fractal
- * noise blended in soft-light, so the fog billows and rolls like real mist. The
- * whole thing is masked to wherever fog remains, so revealed ground stays clear.
+ * animates the *look*: warm dust whose density varies with fractal noise, so it
+ * reads as wispy, translucent, drifting mist — thin gaps let the ground show
+ * through, thicker billows roll across. Two layers drift in opposite directions
+ * for movement; a faint constant haze keeps cleared-but-fogged ground hazy.
  *
- * Cheap enough for phones: a small tiling noise texture is baked once, then each
- * frame is just a few full-canvas pattern fills, throttled to ~30fps and paused
- * when the tab is hidden.
+ * The whole thing is masked to wherever fog remains. Cheap for phones: a high-res
+ * tiling noise texture is baked once, then each frame is a few pattern fills,
+ * throttled to ~30fps and paused when hidden.
  */
 
-const FOG_RGB = '74,63,49' // warm dust
-const TILE = 256
+const DUST = '74,63,49' // warm dust
+const TILE = 512
 
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0
@@ -24,17 +25,19 @@ function mulberry32(seed: number): () => number {
   }
 }
 
-// A seamless, tileable fractal-noise (fbm) texture — soft cloud shapes.
+// Seamless tiling fbm, output as warm dust with a per-pixel alpha shaped into
+// wisps (mostly thin, with denser veins) so the fog looks translucent and soft.
 function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
   const rng = mulberry32(seed)
-  const periods = [4, 8, 16, 32] // cells across the tile; all divide evenly → seamless
-  const weights = [0.5, 0.25, 0.15, 0.1]
+  const periods = [6, 12, 24, 48, 96] // all share factors with 512 → seamless
+  const weights = [0.42, 0.26, 0.16, 0.1, 0.06]
   const grids = periods.map((p) => {
     const g = new Float32Array(p * p)
     for (let i = 0; i < g.length; i++) g[i] = rng()
     return { p, g }
   })
   const smooth = (t: number) => t * t * (3 - 2 * t)
+  const [dr, dg, db] = DUST.split(',').map(Number)
   const data = new Uint8ClampedArray(size * size * 4)
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -55,10 +58,15 @@ function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
         const bot = g[y1 * p + x0] + (g[y1 * p + x1] - g[y1 * p + x0]) * tx
         v += (top + (bot - top) * ty) * weights[o]
       }
-      const c = Math.max(0, Math.min(255, v * 255))
+      // shape into wisps: lift the floor toward transparent, keep dense veins
+      let a = (v - 0.4) * 2.0
+      a = a < 0 ? 0 : a > 1 ? 1 : a
+      a = a * a * (3 - 2 * a)
       const i = (y * size + x) * 4
-      data[i] = data[i + 1] = data[i + 2] = c
-      data[i + 3] = 255
+      data[i] = dr
+      data[i + 1] = dg
+      data[i + 2] = db
+      data[i + 3] = Math.round(a * 255)
     }
   }
   const cv = document.createElement('canvas')
@@ -80,7 +88,6 @@ export class FogHaze {
   private running = false
   private tex = tile()
 
-  /** Point the haze at a fresh anim canvas + fog mask (called on each publish). */
   configure(anim: HTMLCanvasElement, mask: HTMLCanvasElement, w: number, h: number) {
     this.ax = anim.getContext('2d')
     this.mask = mask
@@ -111,7 +118,7 @@ export class FogHaze {
     const pat = ax.createPattern(this.tex, 'repeat')
     if (!pat) return
     pat.setTransform(new DOMMatrix().translateSelf(tx, ty).scaleSelf(scale, scale))
-    ax.globalCompositeOperation = 'soft-light'
+    ax.globalCompositeOperation = 'source-over'
     ax.globalAlpha = alpha
     ax.fillStyle = pat
     ax.fillRect(0, 0, this.w, this.h)
@@ -125,13 +132,18 @@ export class FogHaze {
     ax.globalCompositeOperation = 'source-over'
     ax.globalAlpha = 1
     ax.clearRect(0, 0, this.w, this.h)
-    // warm dust base — a touch translucent so it reads as diffuse haze
-    ax.fillStyle = `rgba(${FOG_RGB},0.58)`
+
+    // faint constant haze so even thin gaps stay slightly veiled
+    ax.globalAlpha = 0.14
+    ax.fillStyle = `rgba(${DUST},1)`
     ax.fillRect(0, 0, this.w, this.h)
-    // two slow drifting layers, opposite directions → rolling billows
-    this.layer(ax, t * 0.010, t * 0.006, 4, 0.9)
-    this.layer(ax, -t * 0.007, t * 0.009, 6.5, 0.7)
-    // keep it only where fog remains
+
+    // drifting wisps — opposite directions and a big slow roll, densities add up
+    this.layer(ax, t * 0.008, t * 0.005, 2.6, 0.6)
+    this.layer(ax, -t * 0.006, t * 0.0075, 3.4, 0.5)
+    this.layer(ax, t * 0.003, -t * 0.0025, 5.5, 0.35)
+
+    // keep it only where fog remains (mask already softened by the caller)
     ax.globalCompositeOperation = 'destination-in'
     ax.globalAlpha = 1
     ax.drawImage(mask, 0, 0, this.w, this.h)

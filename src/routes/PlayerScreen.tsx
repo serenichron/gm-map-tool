@@ -47,6 +47,7 @@ export function PlayerScreen() {
   const softMask = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
   if (!softMask.current) softMask.current = document.createElement('canvas')
 
+  const depthCanvasRef = useRef<HTMLCanvasElement>(null)
   const frostCanvasRef = useRef<HTMLCanvasElement>(null)
   const fogAnimRef = useRef<HTMLCanvasElement>(null)
   const hazeRef = useRef<FogHaze>(null as unknown as FogHaze)
@@ -123,19 +124,44 @@ export function PlayerScreen() {
     fogRef.current.attach(off, pub.width, pub.height)
     fogRef.current.setOps(pub.fogOps)
 
-    // blur the mask once → soft, diffuse fog→clear edges (radius scales with map)
+    const W = pub.width
+    const H = pub.height
+    const blurR = Math.max(8, Math.round(Math.min(W, H) * 0.012))
+
+    // soft mask: blur the fog so cleared edges diffuse. Draw it overflowing the
+    // canvas by the blur radius so the *outer* map border stays solid (otherwise
+    // the blur samples past the edge and fades the whole margin).
     const soft = softMask.current
-    soft.width = pub.width
-    soft.height = pub.height
+    soft.width = W
+    soft.height = H
     const sc = soft.getContext('2d')!
-    sc.clearRect(0, 0, pub.width, pub.height)
-    sc.filter = `blur(${Math.max(8, Math.round(Math.min(pub.width, pub.height) * 0.012))}px)`
-    sc.drawImage(off, 0, 0, pub.width, pub.height)
+    sc.clearRect(0, 0, W, H)
+    sc.filter = `blur(${blurR}px)`
+    sc.drawImage(off, -blurR, -blurR, W + 2 * blurR, H + 2 * blurR)
     sc.filter = 'none'
 
-    frost.width = pub.width
-    frost.height = pub.height
-    buildFrost(frost, soft, img, pub.width, pub.height)
+    // depth: a soft dark shadow cast onto the revealed ground along the fog edge,
+    // as if the fog bank has height above and you're looking down through a gap.
+    const depth = depthCanvasRef.current
+    if (depth) {
+      depth.width = W
+      depth.height = H
+      const dc = depth.getContext('2d')!
+      dc.clearRect(0, 0, W, H)
+      dc.filter = `blur(${Math.max(12, Math.round(Math.min(W, H) * 0.022))}px)`
+      dc.drawImage(off, 0, 0, W, H) // blurred fog
+      dc.filter = 'none'
+      dc.globalCompositeOperation = 'destination-out'
+      dc.drawImage(off, 0, 0, W, H) // remove the fog area → leaves a fringe on the cleared side
+      dc.globalCompositeOperation = 'source-in'
+      dc.fillStyle = 'rgba(8,5,3,0.5)' // warm shadow
+      dc.fillRect(0, 0, W, H)
+      dc.globalCompositeOperation = 'source-over'
+    }
+
+    frost.width = W
+    frost.height = H
+    buildFrost(frost, soft, img, W, H)
     // start/refresh the drifting fog haze, masked to the same soft fog
     const anim = fogAnimRef.current
     if (anim) {
@@ -196,6 +222,11 @@ export function PlayerScreen() {
             height={pub.height}
             cursorClass="cursor-grab"
           >
+            <canvas
+              ref={depthCanvasRef}
+              className="pointer-events-none absolute left-0 top-0"
+              style={{ width: pub.width, height: pub.height }}
+            />
             <canvas
               ref={frostCanvasRef}
               width={pub.width}
