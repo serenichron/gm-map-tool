@@ -85,9 +85,8 @@ export function PlayerScreen() {
   }
   const offscreenFog = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
   if (!offscreenFog.current) offscreenFog.current = document.createElement('canvas')
-  // soft mask for the shadow (unshifted); cover mask for frost/haze (shifted)
-  const softMask = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
-  if (!softMask.current) softMask.current = document.createElement('canvas')
+  // one blurred fog mask, shifted up-left; frost, haze AND the drop shadow all
+  // derive from it so the clearing is coherent (no second, offset hole)
   const coverMask = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
   if (!coverMask.current) coverMask.current = document.createElement('canvas')
 
@@ -180,20 +179,14 @@ export function PlayerScreen() {
     const H = pub.height
     const blurR = Math.max(8, Math.round(Math.min(W, H) * 0.012))
     const shift = Math.max(14, Math.round(Math.min(W, H) * 0.022)) // shadow offset
-    const half = Math.round(shift / 4) // shadow-compensation shift (a quarter)
+    const half = Math.round(shift / 2) // up-left shift so the bright clear re-centres
 
-    // soft mask (UNSHIFTED): the fog shape, used to cast the drop shadow.
-    const soft = softMask.current
-    buildBlurredMask(soft, off, W, H, blurR, 0, 0)
-
-    // cover mask (SHIFTED up-left by half the shadow offset): used for the visible
-    // fog (frost + haze) so the bright cleared area re-centres on the tile while
-    // the shadow stays put. Uniform translation (no scaling).
+    // one fog mask, shifted up-left. Everything below derives from it.
     const cover = coverMask.current
     buildBlurredMask(cover, off, W, H, blurR, -half, -half)
 
-    // depth: a real drop shadow of the whole fog, sitting UNDER it on the ground,
-    // pushed down-right (as if the fog bank is above and lit from upper-left).
+    // depth: drop shadow of the SAME (shifted) fog, pushed down-right — so the lit
+    // clear and the shadow share one hole instead of two offset ones.
     const depth = depthCanvasRef.current
     if (depth) {
       depth.width = W
@@ -201,7 +194,7 @@ export function PlayerScreen() {
       const dc = depth.getContext('2d')!
       dc.clearRect(0, 0, W, H)
       dc.filter = `blur(${Math.round(shift * 0.45)}px)`
-      dc.drawImage(soft, shift, shift, W, H)
+      dc.drawImage(cover, shift, shift, W, H)
       dc.filter = 'none'
       dc.globalCompositeOperation = 'source-in'
       dc.fillStyle = 'rgba(6,4,2,0.72)' // warm near-black shadow
@@ -212,7 +205,6 @@ export function PlayerScreen() {
     frost.width = W
     frost.height = H
     buildFrost(frost, cover, img, W, H)
-    // drifting fog haze, masked to the shifted cover
     const anim = fogAnimRef.current
     if (anim) {
       anim.width = pub.width
