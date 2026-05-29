@@ -33,6 +33,33 @@ function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.strokeStyle = 'rgba(216,196,176,0.3)'
   ctx.strokeRect(T * 0.7, T * 0.7, w - T * 1.4, h - T * 1.4)
 
+  // soft inner shadow cast inward onto the map (frame sits above the map)
+  const S = Math.max(4, Math.round(T * 1.4))
+  const edge = 'rgba(0,0,0,0.4)'
+  const none = 'rgba(0,0,0,0)'
+  const iw = w - 2 * T
+  const ih = h - 2 * T
+  let g = ctx.createLinearGradient(0, T, 0, T + S) // top
+  g.addColorStop(0, edge)
+  g.addColorStop(1, none)
+  ctx.fillStyle = g
+  ctx.fillRect(T, T, iw, S)
+  g = ctx.createLinearGradient(0, h - T, 0, h - T - S) // bottom
+  g.addColorStop(0, edge)
+  g.addColorStop(1, none)
+  ctx.fillStyle = g
+  ctx.fillRect(T, h - T - S, iw, S)
+  g = ctx.createLinearGradient(T, 0, T + S, 0) // left
+  g.addColorStop(0, edge)
+  g.addColorStop(1, none)
+  ctx.fillStyle = g
+  ctx.fillRect(T, T, S, ih)
+  g = ctx.createLinearGradient(w - T, 0, w - T - S, 0) // right
+  g.addColorStop(0, edge)
+  g.addColorStop(1, none)
+  ctx.fillStyle = g
+  ctx.fillRect(w - T - S, T, S, ih)
+
   // crystal accents on the four corners
   const cs = T * 1.05
   for (const [cx, cy] of [
