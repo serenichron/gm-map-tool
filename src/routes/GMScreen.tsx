@@ -559,7 +559,7 @@ function GMWorkspace() {
               <input
                 type="range"
                 min={20}
-                max={155}
+                max={120}
                 value={brush}
                 onChange={(e) => setBrush(+e.target.value)}
                 className="h-1 w-24 cursor-pointer accent-gold"
@@ -591,6 +591,18 @@ function GMWorkspace() {
                   scheduleSave()
                 }}
                 className="h-1 w-24 cursor-pointer accent-gold"
+              />
+              <input
+                type="number"
+                min={10}
+                max={400}
+                value={gridSize}
+                onChange={(e) => {
+                  const v = Math.max(10, Math.min(400, Math.round(+e.target.value) || 10))
+                  setGridSize(v)
+                  scheduleSave()
+                }}
+                className="w-14 rounded-[7px] border border-line bg-[#0f0b06] px-2 py-1 text-right font-ui text-[12px] text-gold outline-none focus:border-ochre"
               />
             </div>
           )}
