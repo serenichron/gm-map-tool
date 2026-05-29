@@ -143,9 +143,9 @@ export class FogHaze {
 
     // drifting cloud layers — opposite directions + a big slow roll, so the forms
     // evolve and the texture clearly moves
-    this.layer(ax, t * 0.006, t * 0.004, 1.25, 0.7)
-    this.layer(ax, -t * 0.0045, t * 0.006, 1.8, 0.55)
-    this.layer(ax, t * 0.0024, -t * 0.0019, 2.7, 0.34)
+    this.layer(ax, t * 0.009, t * 0.006, 1.25, 0.7)
+    this.layer(ax, -t * 0.00675, t * 0.009, 1.8, 0.55)
+    this.layer(ax, t * 0.0036, -t * 0.00285, 2.7, 0.34)
 
     // keep it only where fog remains (mask already softened by the caller)
     ax.globalCompositeOperation = 'destination-in'
