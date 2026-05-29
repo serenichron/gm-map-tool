@@ -15,6 +15,7 @@ export function RoomMenu({
   onDelete,
   onExport,
   onImport,
+  onSignOut,
 }: {
   rooms: Room[]
   activeId: string | null
@@ -24,6 +25,7 @@ export function RoomMenu({
   onDelete: (id: string) => void
   onExport: () => void
   onImport: () => void
+  onSignOut?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [newName, setNewName] = useState('')
@@ -168,6 +170,18 @@ export function RoomMenu({
               Import
             </button>
           </div>
+
+          {onSignOut && (
+            <button
+              onClick={() => {
+                onSignOut()
+                setOpen(false)
+              }}
+              className="mt-1.5 w-full rounded-lg px-3 py-1.5 font-ui text-[12px] text-rust transition hover:bg-rust/10"
+            >
+              Sign out
+            </button>
+          )}
         </div>
       )}
     </div>

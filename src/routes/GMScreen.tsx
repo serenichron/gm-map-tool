@@ -18,8 +18,9 @@ import {
   toPublicPins,
   type Backend,
 } from '../lib/transport.ts'
-import { hasSupabase } from '../lib/supabase.ts'
-import { ensureSession } from '../lib/session.ts'
+import { hasSupabase, supabase } from '../lib/supabase.ts'
+import { currentGmId, signOutGm } from '../lib/auth.ts'
+import { GmLogin } from '../components/GmLogin.tsx'
 import { createRoom, listRooms, renameRoom, deleteRoom, type Room } from '../lib/rooms.ts'
 import type { LoadedMap } from '../lib/types.ts'
 
@@ -35,57 +36,31 @@ const BRUSH_CURSOR_COLOR: Record<FogTool, string> = {
   semi: '#3e8e89',
 }
 
-// Soft access gate for the GM screen. The password lives in the client, so this
-// only deters casual access — real protection would need server-side auth.
-const GM_PASSWORD = '123456'
-const GM_UNLOCK_KEY = 'stranded-gm-unlocked'
-
+// GM access gate: real login (Supabase email/password). Players never see this.
 export function GMScreen() {
-  const [unlocked, setUnlocked] = useState(() => localStorage.getItem(GM_UNLOCK_KEY) === '1')
-  if (!unlocked) return <GmGate onUnlock={() => setUnlocked(true)} />
-  return <GMWorkspace />
-}
+  const [authed, setAuthed] = useState<boolean | null>(hasSupabase ? null : true)
 
-function GmGate({ onUnlock }: { onUnlock: () => void }) {
-  const [pw, setPw] = useState('')
-  const [error, setError] = useState(false)
-  const submit = () => {
-    if (pw === GM_PASSWORD) {
-      localStorage.setItem(GM_UNLOCK_KEY, '1')
-      onUnlock()
-    } else {
-      setError(true)
+  useEffect(() => {
+    if (!hasSupabase || !supabase) return
+    let mounted = true
+    void currentGmId().then((id) => {
+      if (mounted) setAuthed(id !== null)
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      const u = session?.user
+      setAuthed(!!u && !u.is_anonymous)
+    })
+    return () => {
+      mounted = false
+      sub.subscription.unsubscribe()
     }
+  }, [])
+
+  if (authed === null) {
+    return <div className="fixed inset-0 bg-ink" />
   }
-  return (
-    <div className="fixed inset-0 flex items-center justify-center p-4">
-      <div className="w-[min(380px,92vw)] rounded-[18px] border border-line bg-gradient-to-b from-panel-2 to-panel p-8 text-center shadow-2xl">
-        <div className="font-ui text-[11px] uppercase tracking-[0.32em] text-ochre/85">GM screen</div>
-        <h1 className="mt-2 mb-5 font-display text-[26px] font-extrabold text-bone">Keeper's word</h1>
-        <input
-          type="password"
-          autoFocus
-          value={pw}
-          onChange={(e) => {
-            setPw(e.target.value)
-            setError(false)
-          }}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
-          placeholder="Password"
-          className={`w-full rounded-xl border bg-[#0f0b06] px-4 py-3 text-center font-ui text-[15px] tracking-[0.2em] text-bone outline-none ${
-            error ? 'border-rust' : 'border-line focus:border-ochre'
-          }`}
-        />
-        {error && <p className="mt-2 font-ui text-[12px] text-rust">Wrong word. The dust stays.</p>}
-        <button
-          onClick={submit}
-          className="mt-4 w-full rounded-xl border border-ochre bg-gradient-to-b from-[#3a2a18] to-[#2a1f13] px-5 py-3 font-ui text-[15px] font-semibold text-bone transition hover:-translate-y-0.5"
-        >
-          Enter
-        </button>
-      </div>
-    </div>
-  )
+  if (!authed) return <GmLogin />
+  return <GMWorkspace />
 }
 
 function GMWorkspace() {
@@ -237,7 +212,7 @@ function GMWorkspace() {
         setActiveRoomId(LOCAL_ROOM)
         return
       }
-      const uid = await ensureSession()
+      const uid = await currentGmId()
       if (!alive) return
       if (!uid) {
         backendRef.current = createLocalBackend()
@@ -662,6 +637,7 @@ function GMWorkspace() {
             onDelete={removeRoom}
             onExport={() => void exportRooms()}
             onImport={() => importRef.current?.click()}
+            onSignOut={hasSupabase ? () => void signOutGm() : undefined}
           />
           <button className={iconBtn} onClick={() => void copyPlayerLink()} title="Copy the player join link">
             <Icon name={copied ? 'check' : 'copy'} />
