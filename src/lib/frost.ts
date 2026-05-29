@@ -18,9 +18,11 @@ export function buildFrost(
   ctx.clearRect(0, 0, w, h)
   ctx.globalCompositeOperation = 'source-over'
   // a faint, heavily blurred hint of the ground; the animated haze (fogAnim)
-  // layers the warm drifting dust on top of this
+  // layers the warm drifting dust on top of this. Draw the map overflowing the
+  // edges by the blur radius so the blur doesn't fade the outer margin.
+  const pad = 22
   ctx.filter = 'blur(18px) brightness(0.4) saturate(0.8)'
-  ctx.drawImage(mapImg, 0, 0, w, h)
+  ctx.drawImage(mapImg, -pad, -pad, w + 2 * pad, h + 2 * pad)
   ctx.filter = 'none'
   // keep the veil only where fog remains
   ctx.globalCompositeOperation = 'destination-in'

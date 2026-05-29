@@ -140,21 +140,24 @@ export function PlayerScreen() {
     sc.drawImage(off, -blurR, -blurR, W + 2 * blurR, H + 2 * blurR)
     sc.filter = 'none'
 
-    // depth: a soft dark shadow cast onto the revealed ground along the fog edge,
-    // as if the fog bank has height above and you're looking down through a gap.
+    // depth: a soft DIRECTIONAL shadow cast onto the revealed ground along the
+    // fog edge — as if the fog bank stands above the ground and is lit from the
+    // upper-left, so it drops a shadow down-right into the cleared gap.
     const depth = depthCanvasRef.current
     if (depth) {
       depth.width = W
       depth.height = H
       const dc = depth.getContext('2d')!
+      const reach = Math.max(14, Math.round(Math.min(W, H) * 0.03))
+      const off2 = reach * 0.7 // shadow offset → directional cast
       dc.clearRect(0, 0, W, H)
-      dc.filter = `blur(${Math.max(12, Math.round(Math.min(W, H) * 0.022))}px)`
-      dc.drawImage(off, 0, 0, W, H) // blurred fog
+      dc.filter = `blur(${reach}px)`
+      dc.drawImage(off, off2, off2, W, H) // blurred fog, pushed down-right
       dc.filter = 'none'
       dc.globalCompositeOperation = 'destination-out'
-      dc.drawImage(off, 0, 0, W, H) // remove the fog area → leaves a fringe on the cleared side
+      dc.drawImage(off, 0, 0, W, H) // remove the actual fog area → shadow lands on cleared ground
       dc.globalCompositeOperation = 'source-in'
-      dc.fillStyle = 'rgba(8,5,3,0.5)' // warm shadow
+      dc.fillStyle = 'rgba(6,4,2,0.6)' // warm near-black shadow
       dc.fillRect(0, 0, W, H)
       dc.globalCompositeOperation = 'source-over'
     }
