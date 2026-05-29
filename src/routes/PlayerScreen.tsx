@@ -155,7 +155,7 @@ export function PlayerScreen() {
       dc.drawImage(soft, shift, shift, W, H) // softened fog shape, offset
       dc.filter = 'none'
       dc.globalCompositeOperation = 'source-in'
-      dc.fillStyle = 'rgba(6,4,2,0.5)' // warm near-black shadow
+      dc.fillStyle = 'rgba(6,4,2,0.64)' // warm near-black shadow
       dc.fillRect(0, 0, W, H)
       dc.globalCompositeOperation = 'source-over'
     }
