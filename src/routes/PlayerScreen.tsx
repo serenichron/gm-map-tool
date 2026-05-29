@@ -37,6 +37,13 @@ export function PlayerScreen() {
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fogReady, setFogReady] = useState(false)
+  // grid display: follow the GM, or the player's own line strength (local)
+  const [useGmGrid, setUseGmGrid] = useState(() => localStorage.getItem('player-use-gm-grid') !== '0')
+  const [playerGridOpacity, setPlayerGridOpacity] = useState(() => {
+    const v = Number(localStorage.getItem('player-grid-opacity'))
+    return Number.isFinite(v) && v > 0 ? v : 25
+  })
+  const [gridMenu, setGridMenu] = useState(false)
 
   const lastVersion = useRef(0)
   const lastBlobUrl = useRef<string | null>(null)
@@ -117,6 +124,46 @@ export function PlayerScreen() {
         <span className={`h-2 w-2 rounded-full ${connected ? 'bg-teal' : 'bg-bone-dim'}`} />
         {connected ? 'Live' : '…'}
       </span>
+      {pub?.grid?.enabled && (
+        <div className="relative">
+          <button className={iconBtn} onClick={() => setGridMenu((o) => !o)} title="Grid display">
+            <Icon name="hexes" />
+          </button>
+          {gridMenu && (
+            <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[240px] rounded-xl border border-line bg-gradient-to-b from-panel-2 to-panel p-3 shadow-2xl">
+              <label className="flex items-center gap-2 font-ui text-[12px] text-bone">
+                <input
+                  type="checkbox"
+                  checked={useGmGrid}
+                  onChange={(e) => {
+                    setUseGmGrid(e.target.checked)
+                    localStorage.setItem('player-use-gm-grid', e.target.checked ? '1' : '0')
+                  }}
+                  className="accent-teal"
+                />
+                Use the GM&apos;s grid setting
+              </label>
+              <div
+                className={`mt-2.5 flex items-center gap-2 ${useGmGrid ? 'pointer-events-none opacity-40' : ''}`}
+              >
+                <span className="font-ui text-[11px] text-bone-dim">Lines</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={playerGridOpacity}
+                  onChange={(e) => {
+                    const v = +e.target.value
+                    setPlayerGridOpacity(v)
+                    localStorage.setItem('player-grid-opacity', String(v))
+                  }}
+                  className="h-1 flex-1 cursor-pointer accent-teal"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {pub && (
         <button className={iconBtn} onClick={() => fit()} title="Fit map to screen">
           <Icon name="fit" />
@@ -145,6 +192,7 @@ export function PlayerScreen() {
               grid={pub.grid}
               pins={pins}
               onReady={() => setFogReady(true)}
+              gridOpacity={useGmGrid ? undefined : playerGridOpacity}
             />
           </Viewport>
         ) : (

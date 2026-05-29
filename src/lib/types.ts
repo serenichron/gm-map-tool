@@ -14,4 +14,5 @@ export type GridSettings = {
   enabled: boolean
   size: number
   angle?: number // orientation in degrees (0 = corner up/down, 30 = flat top)
+  opacity?: number // line strength 0–100; 25 = the default look
 }

@@ -15,14 +15,16 @@ function drawHexGrid(
   color2: string,
   lineWidth: number,
   angleDeg: number,
+  opacity: number,
 ) {
   ctx.clearRect(0, 0, w, h)
-  if (r < 6) return
+  if (r < 6 || opacity <= 0) return
   const a = (angleDeg * Math.PI) / 180
   const colW = Math.sqrt(3) * r
   const rowH = 1.5 * r
 
   ctx.save()
+  ctx.globalAlpha = Math.min(1, opacity)
   ctx.rotate(a)
   // the region of (rotated) lattice space that maps onto the canvas
   const corners = [
@@ -80,6 +82,7 @@ export function HexGrid({
   height,
   size,
   angle = 0,
+  opacity = 1,
   color = 'rgba(232,183,94,0.45)', // gold
   color2 = 'rgba(153,112,51,0.45)', // dark gold (closer to the gold)
   lineWidth = 2,
@@ -88,6 +91,7 @@ export function HexGrid({
   height: number
   size: number
   angle?: number
+  opacity?: number
   color?: string
   color2?: string
   lineWidth?: number
@@ -99,8 +103,8 @@ export function HexGrid({
     c.width = width
     c.height = height
     const ctx = c.getContext('2d')
-    if (ctx) drawHexGrid(ctx, width, height, size, color, color2, lineWidth, angle)
-  }, [width, height, size, angle, color, color2, lineWidth])
+    if (ctx) drawHexGrid(ctx, width, height, size, color, color2, lineWidth, angle, opacity)
+  }, [width, height, size, angle, opacity, color, color2, lineWidth])
 
   return (
     <canvas

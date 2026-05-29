@@ -51,6 +51,7 @@ export function FogView({
   grid,
   pins,
   onReady,
+  gridOpacity,
 }: {
   width: number
   height: number
@@ -59,7 +60,11 @@ export function FogView({
   grid: GridSettings | null
   pins: PublicPin[]
   onReady?: () => void
+  /** override the grid strength (0–100); undefined = use the GM's setting */
+  gridOpacity?: number
 }) {
+  // 25 is the default look (×1); the slider scales line opacity from there
+  const gridMult = (gridOpacity ?? grid?.opacity ?? 25) / 25
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const readyRef = useRef(false)
   const onReadyRef = useRef(onReady)
@@ -186,7 +191,9 @@ export function FogView({
   return (
     <>
       {/* grid on the ground, under everything fog-related */}
-      {grid?.enabled && <HexGrid width={width} height={height} size={grid.size} angle={grid.angle ?? 0} />}
+      {grid?.enabled && (
+        <HexGrid width={width} height={height} size={grid.size} angle={grid.angle ?? 0} opacity={gridMult} />
+      )}
       <canvas ref={depthRef} className="pointer-events-none absolute left-0 top-0" style={{ width, height }} />
       <canvas ref={frostRef} className="pointer-events-none absolute left-0 top-0" style={{ width, height }} />
       <canvas ref={fogAnimRef} className="pointer-events-none absolute left-0 top-0" style={{ width, height }} />
@@ -197,6 +204,7 @@ export function FogView({
           height={height}
           size={grid.size}
           angle={grid.angle ?? 0}
+          opacity={gridMult}
           color="rgba(232,183,94,0.05)"
           color2="rgba(153,112,51,0.05)"
         />

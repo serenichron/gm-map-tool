@@ -86,6 +86,7 @@ function GMWorkspace() {
   const [gridOn, setGridOn] = useState(false)
   const [gridSize, setGridSize] = useState(37)
   const [gridAngle, setGridAngle] = useState(0)
+  const [gridOpacity, setGridOpacity] = useState(25)
   const [tileAction, setTileAction] = useState<FogTool>('reveal')
   const [dirty, setDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
@@ -129,6 +130,8 @@ function GMWorkspace() {
   gridSizeRef.current = gridSize
   const gridAngleRef = useRef(gridAngle)
   gridAngleRef.current = gridAngle
+  const gridOpacityRef = useRef(gridOpacity)
+  gridOpacityRef.current = gridOpacity
   const tileActionRef = useRef(tileAction)
   tileActionRef.current = tileAction
   const activeRoomIdRef = useRef(activeRoomId)
@@ -162,7 +165,12 @@ function GMWorkspace() {
       height: m.height,
       fogOps: fogRef.current.getActiveOps(),
       pins: pinsRef.current,
-      grid: { enabled: gridOnRef.current, size: gridSizeRef.current, angle: gridAngleRef.current },
+      grid: {
+        enabled: gridOnRef.current,
+        size: gridSizeRef.current,
+        angle: gridAngleRef.current,
+        opacity: gridOpacityRef.current,
+      },
     }
   }
 
@@ -187,6 +195,7 @@ function GMWorkspace() {
     setGridOn(d.grid?.enabled ?? false)
     setGridSize(d.grid?.size ?? 37)
     setGridAngle(d.grid?.angle ?? 0)
+    setGridOpacity(d.grid?.opacity ?? 25)
     setSelectedId(null)
     setMap({ src: URL.createObjectURL(d.blob), width: d.width, height: d.height })
   }
@@ -212,7 +221,12 @@ function GMWorkspace() {
       image_path: workImagePathRef.current,
       fog: fogRef.current.getActiveOps(),
       pins: pinsRef.current,
-      grid: { enabled: gridOnRef.current, size: gridSizeRef.current, angle: gridAngleRef.current },
+      grid: {
+        enabled: gridOnRef.current,
+        size: gridSizeRef.current,
+        angle: gridAngleRef.current,
+        opacity: gridOpacityRef.current,
+      },
     })
   }
 
@@ -463,6 +477,7 @@ function GMWorkspace() {
           setGridOn(false)
           setGridSize(37)
           setGridAngle(0)
+          setGridOpacity(25)
           setSelectedId(null)
           setMap(null)
         }
@@ -646,7 +661,12 @@ function GMWorkspace() {
         imageRef: uploadedRef.current!,
         fogOps: fogRef.current.getActiveOps(),
         pins: toPublicPins(pinsRef.current),
-        grid: { enabled: gridOnRef.current, size: gridSizeRef.current, angle: gridAngleRef.current },
+        grid: {
+        enabled: gridOnRef.current,
+        size: gridSizeRef.current,
+        angle: gridAngleRef.current,
+        opacity: gridOpacityRef.current,
+      },
       })
       setDirty(false)
     } catch (e) {
@@ -788,7 +808,12 @@ function GMWorkspace() {
         setPreviewData({
           src: mapRef.current.src,
           fogOps: fogRef.current.getActiveOps(),
-          grid: { enabled: gridOnRef.current, size: gridSizeRef.current, angle: gridAngleRef.current },
+          grid: {
+        enabled: gridOnRef.current,
+        size: gridSizeRef.current,
+        angle: gridAngleRef.current,
+        opacity: gridOpacityRef.current,
+      },
           pins: toPublicPins(pinsRef.current),
         })
       }
@@ -1013,6 +1038,19 @@ function GMWorkspace() {
             className="w-12 rounded-[6px] border border-line bg-[#0f0b06] px-1.5 py-0.5 text-right font-ui text-[12px] text-gold outline-none focus:border-ochre"
           />
           <span className="font-ui text-[11px] text-bone-dim">°</span>
+          <span className="font-ui text-[11px] text-bone-dim">Lines</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={gridOpacity}
+            onChange={(e) => {
+              setGridOpacity(+e.target.value)
+              scheduleSave()
+            }}
+            className="h-1 w-16 cursor-pointer accent-gold"
+            title="Grid line strength"
+          />
         </div>
       )}
         </>
@@ -1142,6 +1180,7 @@ function GMWorkspace() {
                     height={map.height}
                     size={gridSize}
                     angle={gridAngle}
+                    opacity={gridOpacity / 25}
                     color="rgba(232,183,94,0.3)"
                     color2="rgba(153,112,51,0.3)"
                   />
