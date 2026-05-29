@@ -5,6 +5,7 @@ import './index.css'
 import { Launcher } from './routes/Launcher.tsx'
 import { GMScreen } from './routes/GMScreen.tsx'
 import { PlayerScreen } from './routes/PlayerScreen.tsx'
+import { InstallPrompt } from './components/InstallPrompt.tsx'
 
 // HashRouter: GitHub Pages serves static files, so deep links / refreshes on
 // path routes would 404. Routing lives in the URL hash instead (#/gm, #/room).
@@ -17,5 +18,6 @@ const router = createHashRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <RouterProvider router={router} />
+    <InstallPrompt />
   </StrictMode>,
 )
