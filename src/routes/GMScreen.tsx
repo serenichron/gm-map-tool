@@ -559,7 +559,7 @@ function GMWorkspace() {
               <input
                 type="range"
                 min={20}
-                max={260}
+                max={155}
                 value={brush}
                 onChange={(e) => setBrush(+e.target.value)}
                 className="h-1 w-24 cursor-pointer accent-gold"
