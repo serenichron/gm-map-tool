@@ -17,12 +17,19 @@ export function buildFrost(
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, w, h)
   ctx.globalCompositeOperation = 'source-over'
-  // a faint, heavily blurred hint of the ground; the animated haze (fogAnim)
-  // layers the warm drifting dust on top of this. Draw the map overflowing the
-  // edges by the blur radius so the blur doesn't fade the outer margin.
-  const pad = 48
+  // a faint, heavily blurred hint of the ground. Draw the map at NATURAL size
+  // (no scaling — scaling drifts position-dependently, more toward the corners),
+  // then stretch the 1px edges outward so the blur doesn't fade the map border.
+  const im = mapImg as HTMLImageElement
+  const sW = im.naturalWidth || w
+  const sH = im.naturalHeight || h
+  const e = 48
   ctx.filter = 'blur(18px) brightness(0.4) saturate(0.8)'
-  ctx.drawImage(mapImg, -pad, -pad, w + 2 * pad, h + 2 * pad)
+  ctx.drawImage(im, 0, 0, w, h)
+  ctx.drawImage(im, 0, 0, 1, sH, -e, 0, e, h) // clamp left
+  ctx.drawImage(im, sW - 1, 0, 1, sH, w, 0, e, h) // clamp right
+  ctx.drawImage(im, 0, 0, sW, 1, 0, -e, w, e) // clamp top
+  ctx.drawImage(im, 0, sH - 1, sW, 1, 0, h, w, e) // clamp bottom
   ctx.filter = 'none'
   // keep the veil only where fog remains
   ctx.globalCompositeOperation = 'destination-in'
