@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { RefreshButton } from './RefreshButton.tsx'
 
 type Role = 'gm' | 'player'
 
@@ -27,10 +28,10 @@ export function AppShell({
       <header className="z-20 flex min-h-[54px] flex-none flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-line bg-gradient-to-b from-[#2c2016] to-panel px-3.5 py-2 shadow-[0_2px_0_rgba(0,0,0,.3)]">
         <Link to="/" className="mr-1 flex flex-col leading-none whitespace-nowrap">
           <span className="font-display text-[18px] font-extrabold tracking-[0.01em] text-bone">
-            The Stranded
+            Worldsmith
           </span>
           <span className="mt-[3px] font-ui text-[9.5px] uppercase tracking-[0.28em] text-ochre">
-            Field Map
+            GM toolkit
           </span>
         </Link>
         <span
@@ -40,6 +41,7 @@ export function AppShell({
         </span>
 
         {toolbar}
+        <RefreshButton />
       </header>
 
       <div className="relative flex min-h-0 flex-1">{children}</div>

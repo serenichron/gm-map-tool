@@ -24,10 +24,10 @@ export function Launcher() {
         />
         <div className="relative">
           <div className="font-ui text-[11px] uppercase tracking-[0.32em] text-ochre/85">
-            A field map for
+            A game master's screen
           </div>
           <h1 className="mt-2 mb-1.5 font-display text-[42px] font-extrabold leading-none text-bone">
-            The Stranded
+            Worldsmith
           </h1>
           <p className="mb-7 text-base leading-relaxed text-bone-dim">
             Run the fog from the GM screen. Players join with a code and watch the

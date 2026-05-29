@@ -74,7 +74,7 @@ export function InstallPrompt() {
           className="h-11 w-11 flex-none rounded-[10px]"
         />
         <div className="min-w-0 flex-1">
-          <div className="font-display text-[15px] font-semibold text-bone">Install the field map</div>
+          <div className="font-display text-[15px] font-semibold text-bone">Install Worldsmith</div>
           {isIOS ? (
             <div className="font-ui text-[12px] leading-snug text-bone-dim">
               Tap <span className="text-gold">Share</span>, then{' '}

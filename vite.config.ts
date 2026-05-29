@@ -14,9 +14,9 @@ export default defineConfig(({ command }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'The Stranded — Field Map',
-        short_name: 'Field Map',
-        description: 'A fog-of-war field map for the tabletop game The Stranded.',
+        name: 'Worldsmith',
+        short_name: 'Worldsmith',
+        description: "A fog-of-war field map and game master's screen for tabletop games.",
         theme_color: '#16110b',
         background_color: '#16110b',
         display: 'standalone',
