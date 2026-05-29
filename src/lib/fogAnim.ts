@@ -29,9 +29,9 @@ function mulberry32(seed: number): () => number {
 // wisps (mostly thin, with denser veins) so the fog looks translucent and soft.
 function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
   const rng = mulberry32(seed)
-  // low frequencies weighted heavily → big rounded cloud masses, not fine veins
-  const periods = [3, 6, 12, 24, 48] // all share factors with 512 → seamless
-  const weights = [0.4, 0.27, 0.18, 0.1, 0.05]
+  // a fuller spread of frequencies → big masses with billowing detail inside them
+  const periods = [4, 8, 16, 32, 64] // all share factors with 512 → seamless
+  const weights = [0.3, 0.26, 0.21, 0.14, 0.09]
   const grids = periods.map((p) => {
     const g = new Float32Array(p * p)
     for (let i = 0; i < g.length; i++) g[i] = rng()
@@ -59,9 +59,9 @@ function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
         const bot = g[y1 * p + x0] + (g[y1 * p + x1] - g[y1 * p + x0]) * tx
         v += (top + (bot - top) * ty) * weights[o]
       }
-      // shape into soft-edged cloud masses: clear sky below the threshold,
-      // rounded billows above it
-      let a = (v - 0.45) / (0.72 - 0.45)
+      // shape into cloud masses: a low threshold so most of the field is covered
+      // (dense, not transparent) but with plenty of thickness variation = texture
+      let a = (v - 0.32) / (0.7 - 0.32)
       a = a < 0 ? 0 : a > 1 ? 1 : a
       a = a * a * (3 - 2 * a)
       const i = (y * size + x) * 4
@@ -135,16 +135,17 @@ export class FogHaze {
     ax.globalAlpha = 1
     ax.clearRect(0, 0, this.w, this.h)
 
-    // constant base haze fills the gaps between clouds → less transparent overall
-    ax.globalAlpha = 0.32
+    // light constant haze only — density now comes from the clouds, so the
+    // texture stays visible instead of being washed flat
+    ax.globalAlpha = 0.14
     ax.fillStyle = `rgba(${DUST},1)`
     ax.fillRect(0, 0, this.w, this.h)
 
-    // slow-drifting cloud layers — opposite directions + a big slow roll, so the
-    // forms evolve as they pass over each other
-    this.layer(ax, t * 0.004, t * 0.0025, 2.2, 0.74)
-    this.layer(ax, -t * 0.003, t * 0.004, 3.0, 0.6)
-    this.layer(ax, t * 0.0015, -t * 0.0012, 4.6, 0.36)
+    // drifting cloud layers — opposite directions + a big slow roll, so the forms
+    // evolve and the texture clearly moves
+    this.layer(ax, t * 0.006, t * 0.004, 2.0, 0.7)
+    this.layer(ax, -t * 0.0045, t * 0.006, 2.8, 0.55)
+    this.layer(ax, t * 0.0024, -t * 0.0019, 4.2, 0.34)
 
     // keep it only where fog remains (mask already softened by the caller)
     ax.globalCompositeOperation = 'destination-in'
