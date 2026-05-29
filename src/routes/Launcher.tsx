@@ -16,6 +16,7 @@ export function Launcher() {
     navigate(c ? `/room?c=${encodeURIComponent(c)}` : '/room')
   }
   const forget = (c: string) => {
+    if (!window.confirm(`Remove room ${c} from your recent list?`)) return
     removeRecentRoom(c)
     setRecent(getRecentRooms())
   }

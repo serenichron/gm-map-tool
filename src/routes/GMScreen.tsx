@@ -6,7 +6,10 @@ import { PinEditor } from '../components/PinEditor.tsx'
 import { RoomMenu } from '../components/RoomMenu.tsx'
 import { HexGrid } from '../components/HexGrid.tsx'
 import { MapFrame } from '../components/MapFrame.tsx'
+import { FogView } from '../components/FogView.tsx'
 import { Icon } from '../components/icons.tsx'
+import type { GridSettings } from '../lib/types.ts'
+import type { PublicPin } from '../lib/transport.ts'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
 import { pixelToHex } from '../lib/hex.ts'
@@ -78,6 +81,13 @@ function GMWorkspace() {
   const [tileAction, setTileAction] = useState<FogTool>('reveal')
   const [dirty, setDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [preview, setPreview] = useState(false)
+  const [previewData, setPreviewData] = useState<{
+    src: string
+    fogOps: ReturnType<FogController['getActiveOps']>
+    grid: GridSettings
+    pins: PublicPin[]
+  } | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -113,6 +123,8 @@ function GMWorkspace() {
   tileActionRef.current = tileAction
   const activeRoomIdRef = useRef(activeRoomId)
   activeRoomIdRef.current = activeRoomId
+  const previewRef = useRef(preview)
+  previewRef.current = preview
 
   const restoredOps = useRef<WorkingState['fogOps'] | null>(null)
   const saveTimer = useRef<number | undefined>(undefined)
@@ -159,8 +171,9 @@ function GMWorkspace() {
     map?.height ?? 0,
     {
       onScaleChange: setZoom,
-      shouldPan: (e) => e.button !== 0 || toolRef.current === 'pan',
+      shouldPan: (e) => previewRef.current || e.button !== 0 || toolRef.current === 'pan',
       onPaintStart: (pt) => {
+        if (previewRef.current) return
         const t = toolRef.current
         if (t === 'pan') return
         if (t === 'pin') {
@@ -180,6 +193,7 @@ function GMWorkspace() {
         fogRef.current.extendStroke(pt.x, pt.y)
       },
       onPaintMove: (pt) => {
+        if (previewRef.current) return
         const t = toolRef.current
         if (t === 'pan' || t === 'pin') return
         if (t === 'tile') {
@@ -190,6 +204,7 @@ function GMWorkspace() {
         fogRef.current.extendStroke(pt.x, pt.y)
       },
       onPaintEnd: () => {
+        if (previewRef.current) return
         const t = toolRef.current
         if (t === 'pin') return
         if (t === 'tile') {
@@ -574,17 +589,39 @@ function GMWorkspace() {
     }
   }
 
+  // snapshot the current draft and flip into the player-preview (read-only)
+  function togglePreview() {
+    setPreview((v) => {
+      const next = !v
+      if (next && mapRef.current) {
+        setPreviewData({
+          src: mapRef.current.src,
+          fogOps: fogRef.current.getActiveOps(),
+          grid: { enabled: gridOnRef.current, size: gridSizeRef.current },
+          pins: toPublicPins(pinsRef.current),
+        })
+      }
+      return next
+    })
+  }
+
   const pickFile = () => fileRef.current?.click()
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
 
   const isBrush = tool === 'reveal' || tool === 'hide' || tool === 'semi'
-  const cursorClass = tool === 'pan' ? 'cursor-grab' : isBrush ? 'cursor-none' : 'cursor-crosshair'
+  const cursorClass = preview
+    ? 'cursor-grab'
+    : tool === 'pan'
+      ? 'cursor-grab'
+      : isBrush
+        ? 'cursor-none'
+        : 'cursor-crosshair'
 
   function moveCursor(e: React.PointerEvent) {
     const el = cursorRef.current
     const ws = workspaceRef.current
     if (!el || !ws) return
-    if (!isBrush || !map) {
+    if (!isBrush || !map || preview) {
       el.style.display = 'none'
       return
     }
@@ -669,6 +706,8 @@ function GMWorkspace() {
   // tools row (only with a map): mode picker · contextual options · utilities
   const toolbar = map ? (
     <>
+      {!preview && (
+        <>
       {/* PRIMARY — what the pointer does, grouped: navigate · fog brushes · pin · tiles */}
       <div className="flex items-center gap-0.5 rounded-[11px] border border-line bg-ink-2 p-1">
         {modeBtn('pan', 'pan', 'Pan', 'Pan / move (1)')}
@@ -760,9 +799,19 @@ function GMWorkspace() {
           />
         </div>
       )}
+        </>
+      )}
+
+      {preview && (
+        <span className="inline-flex items-center gap-2 font-ui text-[12px] font-semibold tracking-[0.04em] text-teal">
+          <Icon name="reveal" className="h-[15px] w-[15px]" /> Player preview — read-only
+        </span>
+      )}
 
       <div className="flex-1" />
 
+      {!preview && (
+        <>
       {/* SECONDARY — utilities, grouped and lighter */}
       <div className="flex items-center gap-0.5">
         <button className={utilBtn} disabled={!canUndo} onClick={() => { fogRef.current.undo(); refreshUndo(); scheduleSave() }} title="Undo (Ctrl+Z)">
@@ -801,6 +850,24 @@ function GMWorkspace() {
           <Icon name="revealAll" />
         </button>
       </div>
+
+      <span className={vDivider} />
+        </>
+      )}
+
+      {/* view switcher: edit ⇄ what players see */}
+      <button
+        onClick={togglePreview}
+        title={preview ? 'Back to editing' : 'Preview what players see (read-only)'}
+        className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 font-ui text-[12px] font-medium transition ${
+          preview
+            ? 'bg-gradient-to-b from-[#15302e] to-[#0f2422] text-teal ring-1 ring-inset ring-teal-dim'
+            : 'text-bone-dim hover:bg-[#352818] hover:text-bone'
+        }`}
+      >
+        <Icon name="reveal" className="h-[15px] w-[15px]" />
+        {preview ? 'Editing' : 'Player view'}
+      </button>
 
       <span className={vDivider} />
 
@@ -842,42 +909,58 @@ function GMWorkspace() {
               height={map.height}
               cursorClass={cursorClass}
             >
-              <canvas
-                key={map.src}
-                ref={fogCanvasRef}
-                width={map.width}
-                height={map.height}
-                className="pointer-events-none absolute left-0 top-0"
-                style={{ width: map.width, height: map.height, opacity: GM_FOG_OPACITY }}
-              />
-              {gridOn && (
-                <HexGrid
+              {/* editing layers stay mounted (fog canvas keeps its content);
+                  hidden while previewing so the player layers show instead */}
+              <div style={{ display: preview ? 'none' : 'contents' }}>
+                <canvas
+                  key={map.src}
+                  ref={fogCanvasRef}
                   width={map.width}
                   height={map.height}
-                  size={gridSize}
-                  color="rgba(232,183,94,0.3)"
-                  color2="rgba(153,112,51,0.3)"
+                  className="pointer-events-none absolute left-0 top-0"
+                  style={{ width: map.width, height: map.height, opacity: GM_FOG_OPACITY }}
+                />
+                {gridOn && (
+                  <HexGrid
+                    width={map.width}
+                    height={map.height}
+                    size={gridSize}
+                    color="rgba(232,183,94,0.3)"
+                    color2="rgba(153,112,51,0.3)"
+                  />
+                )}
+                <div className="pointer-events-none absolute left-0 top-0" style={{ width: map.width, height: map.height }}>
+                  {pins.map((p) => (
+                    <PinMarker
+                      key={p.id}
+                      pin={p}
+                      interactive
+                      screenToImage={screenToImage}
+                      onMove={movePin}
+                      onOpen={setSelectedId}
+                    />
+                  ))}
+                </div>
+                <MapFrame width={map.width} height={map.height} />
+              </div>
+              {preview && previewData && (
+                <FogView
+                  width={map.width}
+                  height={map.height}
+                  mapSrc={previewData.src}
+                  fogOps={previewData.fogOps}
+                  grid={previewData.grid}
+                  pins={previewData.pins}
                 />
               )}
-              <div className="pointer-events-none absolute left-0 top-0" style={{ width: map.width, height: map.height }}>
-                {pins.map((p) => (
-                  <PinMarker
-                    key={p.id}
-                    pin={p}
-                    interactive
-                    screenToImage={screenToImage}
-                    onMove={movePin}
-                    onOpen={setSelectedId}
-                  />
-                ))}
-              </div>
-              <MapFrame width={map.width} height={map.height} />
             </Viewport>
-            <div
-              ref={cursorRef}
-              className="pointer-events-none absolute left-0 top-0 z-10 hidden rounded-full border-[1.5px]"
-              style={{ boxShadow: '0 0 0 1px rgba(0,0,0,.5), inset 0 0 12px rgba(224,169,75,.25)' }}
-            />
+            {!preview && (
+              <div
+                ref={cursorRef}
+                className="pointer-events-none absolute left-0 top-0 z-10 hidden rounded-full border-[1.5px]"
+                style={{ boxShadow: '0 0 0 1px rgba(0,0,0,.5), inset 0 0 12px rgba(224,169,75,.25)' }}
+              />
+            )}
           </>
         ) : (
           <div className="pointer-events-none flex flex-1 items-center justify-center">
