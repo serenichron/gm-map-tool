@@ -22,17 +22,19 @@ export const PIN_ICONS: { key: string; label: string }[] = [
 
 const GLYPHS: Record<string, JSX.Element | null> = {
   pin: null,
+  // a ghost — round dome, scalloped hem, two eyes (round caps render the dots)
   monster: (
     <>
-      <path d="M6 3c2 5 3 12 3 18" />
-      <path d="M11 3c2 5 3 12 3 18" />
-      <path d="M16 3c2 5 3 12 3 18" />
+      <path d="M12 2a8 8 0 0 0-8 8v11l3-2 2 2 3-2 3 2 2-2 3 2V10a8 8 0 0 0-8-8z" />
+      <path d="M9.5 10h.01" />
+      <path d="M14.5 10h.01" />
     </>
   ),
+  // bear-trap jaws — two rows of teeth facing across an open gap
   trap: (
     <>
-      <path d="M3 16l3-6 3 6 3-6 3 6 3-6 3 6" />
-      <path d="M3 16h18" />
+      <path d="M4 7l2.7 4 2.7-4 2.6 4 2.7-4 2.6 4" />
+      <path d="M4 17l2.7-4 2.7 4 2.6-4 2.7 4 2.6-4" />
     </>
   ),
   hazard: (
@@ -42,26 +44,30 @@ const GLYPHS: Record<string, JSX.Element | null> = {
       <path d="M12 17h.01" />
     </>
   ),
+  // chest with a domed lid and a lock hasp
   treasure: (
     <>
-      <path d="M3 8h18v12H3z" />
-      <path d="M3 8l2-3h14l2 3" />
-      <path d="M12 12v3" />
+      <path d="M4 9h16v11H4z" />
+      <path d="M4 9V7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2" />
+      <path d="M4 13h16" />
+      <path d="M11 13v2.5h2V13" />
     </>
   ),
+  // faceted gem
   crystal: (
     <>
-      <path d="M12 2l7 7-7 13-7-13z" />
-      <path d="M5 9h14" />
-      <path d="M12 2v20" />
+      <path d="M6 3h12l4 6-10 13L2 9z" />
+      <path d="M11 3 8 9l4 13 4-13-3-6" />
+      <path d="M2 9h20" />
     </>
   ),
+  // key — round bow, two teeth
   secret: (
     <>
-      <circle cx="12" cy="6.5" r="3.5" />
-      <path d="M12 10v10" />
-      <path d="M12 15h3" />
-      <path d="M12 18h2.5" />
+      <circle cx="12" cy="7" r="4" />
+      <path d="M12 11v9" />
+      <path d="M12 15h3.5" />
+      <path d="M12 18h3" />
     </>
   ),
   rumor: <path d="M4 5h16v10H9l-4 4v-4H4z" />,
@@ -90,18 +96,22 @@ const GLYPHS: Record<string, JSX.Element | null> = {
       <path d="M10 21v-6h4v6" />
     </>
   ),
+  // broken columns on a base — one jagged-topped, one shorter
   ruin: (
     <>
       <path d="M3 21h18" />
-      <path d="M6 21V9h3" />
-      <path d="M12 21V5" />
-      <path d="M17 21v-8h3" />
+      <path d="M6 21V9h3v12" />
+      <path d="M14 21v-8h3v8" />
+      <path d="M6 9l1.5-3 1.5 3" />
     </>
   ),
+  // tent — crossed poles, a door notch, the ground line
   camp: (
     <>
-      <path d="M12 4L3 20h18z" />
-      <path d="M9 20l3-5 3 5" />
+      <path d="M3.5 21 14 3" />
+      <path d="M20.5 21 10 3" />
+      <path d="M15.5 21 12 15l-3.5 6" />
+      <path d="M2 21h20" />
     </>
   ),
   water: <path d="M12 3s7 7 7 12a7 7 0 0 1-14 0c0-5 7-12 7-12z" />,
