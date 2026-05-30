@@ -4,6 +4,11 @@ import { PinGlyph } from './PinGlyph.tsx'
 
 const DRAG_THRESHOLD = 4 // px before a press becomes a drag rather than a tap
 
+// Counter the stage zoom so the pin holds a constant on-screen size — but only
+// within a band. Clamped, so once you zoom far in it grows with the map, and far
+// out it shrinks with the map (constant while the stage scale is ~0.4×–3×).
+export const PIN_COUNTER_SCALE = 'clamp(0.4, var(--inv, 1), 3)'
+
 /** Pick a legible glyph colour (dark on light pins, light on dark pins). */
 function glyphColor(hex: string): string {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
@@ -66,7 +71,7 @@ export function PinMarker({
         onPointerDown={onPointerDown}
         className="pointer-events-auto"
         style={{
-          transform: 'translate(-50%, -100%) scale(var(--inv, 1))',
+          transform: `translate(-50%, -100%) scale(${PIN_COUNTER_SCALE})`,
           transformOrigin: 'bottom center',
           // own compositor layer → rasterised at its net (1×) scale, so the
           // vector stays crisp at any zoom instead of upscaling the stage texture

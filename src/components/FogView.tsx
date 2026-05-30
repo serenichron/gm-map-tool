@@ -220,9 +220,9 @@ export function FogView({
             onOpen={setSelectedId}
           />
         ))}
+        {selectedPin && <PinPopover pin={selectedPin} onClose={() => setSelectedId(null)} />}
       </div>
       <MapFrame width={width} height={height} />
-      {selectedPin && <PinPopover pin={selectedPin} onClose={() => setSelectedId(null)} />}
     </>
   )
 }
