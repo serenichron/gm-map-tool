@@ -24,9 +24,9 @@ const GLYPHS: Record<string, JSX.Element | null> = {
   pin: null,
   monster: (
     <>
-      <path d="M7 3c1.4 5 1.4 13 0 18" />
-      <path d="M12 3c1.4 5 1.4 13 0 18" />
-      <path d="M17 3c1.4 5 1.4 13 0 18" />
+      <path d="M6 3c2 5 3 12 3 18" />
+      <path d="M11 3c2 5 3 12 3 18" />
+      <path d="M16 3c2 5 3 12 3 18" />
     </>
   ),
   trap: (
@@ -58,8 +58,10 @@ const GLYPHS: Record<string, JSX.Element | null> = {
   ),
   secret: (
     <>
-      <circle cx="12" cy="9" r="3" />
-      <path d="M10 12l-1.5 7h7L14 12" />
+      <circle cx="12" cy="6.5" r="3.5" />
+      <path d="M12 10v10" />
+      <path d="M12 15h3" />
+      <path d="M12 18h2.5" />
     </>
   ),
   rumor: <path d="M4 5h16v10H9l-4 4v-4H4z" />,

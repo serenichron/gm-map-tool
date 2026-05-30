@@ -23,7 +23,10 @@ export function PinPopover({ pin, onClose }: { pin: PublicPin; onClose: () => vo
       >
         {/* offsets are in counter-scaled space → constant on screen */}
         <div className="absolute" style={{ left: 12, bottom: 26 }}>
-          <div className="pointer-events-auto relative w-[220px] rounded-xl border border-ochre bg-gradient-to-b from-panel-2 to-[#1a130b] p-3.5 shadow-2xl">
+          <div
+            data-popover
+            className="pointer-events-auto relative w-[220px] rounded-xl border border-ochre bg-gradient-to-b from-panel-2 to-[#1a130b] p-3.5 shadow-2xl"
+          >
             <button
               onClick={onClose}
               className="absolute right-2 top-1.5 h-[24px] w-[24px] rounded-md text-[16px] text-bone-dim hover:bg-[#2a2015] hover:text-bone"

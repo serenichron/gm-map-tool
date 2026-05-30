@@ -190,6 +190,18 @@ export function FogView({
 
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
 
+  // tap anywhere outside the open popover (and not on a pin) closes it
+  useEffect(() => {
+    if (!selectedId) return
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Element | null
+      if (t?.closest('[data-popover]') || t?.closest('[data-pin]')) return
+      setSelectedId(null)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [selectedId])
+
   return (
     <>
       {/* grid on the ground, under everything fog-related */}
