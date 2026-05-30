@@ -75,7 +75,7 @@ export function GMScreen() {
 
 function GMWorkspace() {
   const [map, setMap] = useState<LoadedMap | null>(null)
-  const [tool, setTool] = useState<Tool>('reveal')
+  const [tool, setTool] = useState<Tool>('pan')
   const [brush, setBrush] = useState(30)
   const [zoom, setZoom] = useState(1)
   const [dragging, setDragging] = useState(false)
