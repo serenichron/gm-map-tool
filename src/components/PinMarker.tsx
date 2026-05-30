@@ -68,11 +68,14 @@ export function PinMarker({
         style={{
           transform: 'translate(-50%, -100%) scale(var(--inv, 1))',
           transformOrigin: 'bottom center',
+          // own compositor layer → rasterised at its net (1×) scale, so the
+          // vector stays crisp at any zoom instead of upscaling the stage texture
+          willChange: 'transform',
           cursor: interactive ? 'grab' : 'pointer',
         }}
       >
-        <div className="relative" style={{ width: 30, height: 39 }}>
-          <svg viewBox="0 0 28 36" width={30} height={39} className="block">
+        <div className="relative" style={{ width: 26, height: 33 }}>
+          <svg viewBox="0 0 28 36" style={{ width: 26, height: 33 }} className="block">
             <path
               d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
               fill={color}
@@ -82,14 +85,14 @@ export function PinMarker({
             <circle cx="14" cy="13" r="8.5" fill="rgba(0,0,0,.16)" />
           </svg>
           <div
-            className="absolute left-1/2 top-[14px] -translate-x-1/2 -translate-y-1/2"
+            className="absolute left-1/2 top-[12px] -translate-x-1/2 -translate-y-1/2"
             style={{ color: fg }}
           >
-            <PinGlyph name={pin.icon || 'pin'} className="h-[15px] w-[15px]" />
+            <PinGlyph name={pin.icon || 'pin'} className="h-[13px] w-[13px]" />
           </div>
         </div>
         {pin.title && (
-          <div className="absolute left-1/2 top-[40px] -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-[rgba(12,8,4,.82)] px-2 py-0.5 font-ui text-[11px] font-semibold text-bone shadow-[0_2px_6px_rgba(0,0,0,.5)]">
+          <div className="absolute left-1/2 top-[35px] -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-[rgba(12,8,4,.82)] px-2 py-0.5 font-ui text-[11px] font-semibold text-bone shadow-[0_2px_6px_rgba(0,0,0,.5)]">
             {pin.title}
           </div>
         )}
