@@ -1,7 +1,8 @@
-import { DOMAINS, type CrystalDomain, type Pin } from '../lib/pins.ts'
+import { DOMAINS, getPinColor, type Pin } from '../lib/pins.ts'
+import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
 
 /**
- * Edit a pin's title, crystal domain, player note and GM-only note.
+ * Edit a pin's title, marker (icon + colour), player note and GM-only note.
  * Responsive: a bottom sheet on phones/tablets, a right-hand panel on desktop.
  * The GM note is visually marked as never-shared.
  */
@@ -45,26 +46,67 @@ export function PinEditor({
 
         <div>
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
-            Crystal domain
+            Marker
           </span>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-1.5">
+            {PIN_ICONS.map((g) => {
+              const selected = (pin.icon || 'pin') === g.key
+              return (
+                <button
+                  key={g.key}
+                  title={g.label}
+                  onClick={() => onPatch({ icon: g.key })}
+                  className={`flex h-9 w-9 items-center justify-center rounded-[8px] border transition ${
+                    selected
+                      ? 'border-ochre bg-ochre/15 text-gold'
+                      : 'border-line bg-panel-2 text-bone-dim hover:bg-[#352818] hover:text-bone'
+                  }`}
+                >
+                  {g.key === 'pin' ? (
+                    <span className="text-[11px]">—</span>
+                  ) : (
+                    <PinGlyph name={g.key} className="h-[18px] w-[18px]" />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div>
+          <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+            Colour
+          </span>
+          <div className="flex flex-wrap items-center gap-2.5">
             {DOMAINS.map((d) => {
-              const selected = pin.domain === d.key
+              const selected = getPinColor(pin).toLowerCase() === d.color.toLowerCase()
               return (
                 <button
                   key={d.key}
                   title={`${d.label} — ${d.meaning}`}
-                  onClick={() => onPatch({ domain: d.key as CrystalDomain })}
-                  className="h-7 w-7 rounded-[6px] border-2 transition"
+                  onClick={() => onPatch({ color: d.color })}
+                  className="h-7 w-7 rounded-full border-2 transition"
                   style={{
-                    transform: 'rotate(45deg)',
-                    background: `linear-gradient(135deg, ${d.color}, #000)`,
+                    background: d.color,
                     borderColor: selected ? '#fff' : 'transparent',
                     boxShadow: selected ? `0 0 10px ${d.color}` : 'none',
                   }}
                 />
               )
             })}
+            <label
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-line"
+              title="Custom colour"
+              style={{ background: getPinColor(pin) }}
+            >
+              <input
+                type="color"
+                value={getPinColor(pin)}
+                onChange={(e) => onPatch({ color: e.target.value })}
+                className="h-0 w-0 opacity-0"
+              />
+              <span className="font-ui text-[12px] text-bone mix-blend-difference">＋</span>
+            </label>
           </div>
         </div>
 

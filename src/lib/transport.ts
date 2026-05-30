@@ -10,7 +10,7 @@
  * The wire only ever carries PublicPin — the GM-only note never leaves the GM.
  */
 import type { FogOp } from './fog.ts'
-import type { CrystalDomain, Pin } from './pins.ts'
+import { getPinColor, type Pin } from './pins.ts'
 import type { GridSettings } from './types.ts'
 import { idbGet, idbSet } from './storage.ts'
 import { supabase } from './supabase.ts'
@@ -19,14 +19,23 @@ export type PublicPin = {
   id: string
   x: number
   y: number
-  domain: CrystalDomain
+  color: string
+  icon: string
   title: string
   playerNote: string
 }
 
 /** Drop the GM-only note: it must never reach a player session. */
 export const toPublicPins = (pins: Pin[]): PublicPin[] =>
-  pins.map(({ id, x, y, domain, title, playerNote }) => ({ id, x, y, domain, title, playerNote }))
+  pins.map(({ id, x, y, title, playerNote, ...p }) => ({
+    id,
+    x,
+    y,
+    color: getPinColor(p),
+    icon: p.icon || 'pin',
+    title,
+    playerNote,
+  }))
 
 /** What the GM hands to publish(). The image is uploaded separately via uploadMap. */
 export type PublishInput = {

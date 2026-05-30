@@ -1,12 +1,12 @@
-import { domainColor } from '../lib/pins.ts'
 import type { PublicPin } from '../lib/transport.ts'
+import { PinGlyph } from './PinGlyph.tsx'
 
 /**
  * Read-only note shown when a player taps a pin. Player note only — the GM note
  * never reaches this screen. A bottom card, comfortable on phone and desktop.
  */
 export function PinPopover({ pin, onClose }: { pin: PublicPin; onClose: () => void }) {
-  const color = domainColor(pin.domain)
+  const color = pin.color
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-3">
       <div className="relative w-full max-w-[420px] rounded-2xl border border-ochre bg-gradient-to-b from-panel-2 to-[#1a130b] p-5 shadow-2xl">
@@ -18,9 +18,11 @@ export function PinPopover({ pin, onClose }: { pin: PublicPin; onClose: () => vo
         </button>
         <h4 className="mb-2 flex items-center gap-2.5 pr-6 font-display text-[19px] font-semibold text-bone">
           <span
-            className="h-3 w-3 rounded-[3px]"
-            style={{ transform: 'rotate(45deg)', background: color, boxShadow: `0 0 8px ${color}` }}
-          />
+            className="inline-flex h-6 w-6 items-center justify-center rounded-full"
+            style={{ background: color, boxShadow: `0 0 8px ${color}` }}
+          >
+            <PinGlyph name={pin.icon || 'pin'} className="h-3.5 w-3.5 text-[#16110b]" />
+          </span>
           {pin.title || 'Unmarked'}
         </h4>
         {pin.playerNote ? (

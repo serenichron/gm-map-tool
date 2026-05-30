@@ -13,7 +13,7 @@ import type { PublicPin } from '../lib/transport.ts'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
 import { pixelToHex } from '../lib/hex.ts'
-import { newPinId, type Pin } from '../lib/pins.ts'
+import { newPinId, DEFAULT_PIN_COLOR, type Pin } from '../lib/pins.ts'
 import { idbGet, idbSet, idbDel, imgKey, workKey, type WorkingState } from '../lib/storage.ts'
 import {
   createLocalBackend,
@@ -581,7 +581,7 @@ function GMWorkspace() {
 
   // pin operations
   function addPin(x: number, y: number) {
-    const pin: Pin = { id: newPinId(), x, y, domain: 'amber', title: '', playerNote: '', gmNote: '' }
+    const pin: Pin = { id: newPinId(), x, y, color: DEFAULT_PIN_COLOR, icon: 'pin', title: '', playerNote: '', gmNote: '' }
     setPins((p) => [...p, pin])
     setSelectedId(pin.id)
     scheduleSave()

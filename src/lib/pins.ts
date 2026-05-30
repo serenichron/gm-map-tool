@@ -20,10 +20,19 @@ export type Pin = {
   id: string
   x: number
   y: number
-  domain: CrystalDomain
+  color: string // hex; from a domain swatch or a custom colour
+  icon: string // glyph key ('pin' = none)
   title: string
   playerNote: string
   gmNote: string
+  domain?: CrystalDomain // legacy pins (pre-colour); used as a fallback
+}
+
+export const DEFAULT_PIN_COLOR = '#c8923d' // amber
+
+/** Resolve a pin's colour, falling back to its legacy crystal domain. */
+export function getPinColor(p: { color?: string; domain?: CrystalDomain }): string {
+  return p.color || (p.domain ? domainColor(p.domain) : DEFAULT_PIN_COLOR)
 }
 
 export const DOMAINS: { key: CrystalDomain; label: string; color: string; meaning: string }[] = [
