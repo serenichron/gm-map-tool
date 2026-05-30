@@ -36,6 +36,7 @@ export function PlayerScreen() {
   const [pins, setPins] = useState<PublicPin[]>([])
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [awaitingPublish, setAwaitingPublish] = useState(false)
   const [fogReady, setFogReady] = useState(false)
   // grid display: follow the GM, or the player's own line strength (local)
   const [useGmGrid, setUseGmGrid] = useState(() => localStorage.getItem('player-use-gm-grid') !== '0')
@@ -96,6 +97,7 @@ export function PlayerScreen() {
       if (!alive) return
       setConnected(true)
       if (latest) apply(latest)
+      else setAwaitingPublish(true) // joined, but the GM hasn't published yet
     })()
 
     return () => {
@@ -214,13 +216,18 @@ export function PlayerScreen() {
                 <h3 className="font-display text-[22px] font-semibold text-bone">{error}</h3>
                 <p className="font-ui text-[14px] text-bone-dim">Check the code with your GM.</p>
               </>
+            ) : awaitingPublish ? (
+              <>
+                <h3 className="font-display text-[22px] font-semibold text-bone">Not unveiled yet</h3>
+                <p className="max-w-[320px] font-ui text-[14px] leading-relaxed text-bone-dim">
+                  Your GM hasn&apos;t raised this map yet. It&apos;ll appear here the moment they do.
+                </p>
+              </>
             ) : (
               <>
                 <div className="h-16 w-16 animate-spin rounded-full border-[3px] border-[#3a2c1c] border-t-ochre [animation-duration:1.4s]" />
                 <h3 className="font-display text-[22px] font-semibold text-bone">The dust has not cleared</h3>
-                <p className="font-ui text-[14px] tracking-[0.04em] text-bone-dim">
-                  Waiting for the GM to reveal the map…
-                </p>
+                <p className="font-ui text-[14px] tracking-[0.04em] text-bone-dim">Connecting to the table…</p>
               </>
             )}
           </div>

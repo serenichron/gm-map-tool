@@ -22,6 +22,9 @@ export type ViewportOpts = {
   onPaintStart?: (pt: { x: number; y: number }, e: PointerEvent) => void
   onPaintMove?: (pt: { x: number; y: number }, e: PointerEvent) => void
   onPaintEnd?: (e: PointerEvent) => void
+  /** when true, a press on a pin is left to the pin (drag); otherwise the press
+   *  pans/paints as usual (the pin still gets a no-move tap for opening). */
+  pinsDraggable?: () => boolean
 }
 
 /**
@@ -143,9 +146,9 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
       }
       if (pointers.size > 2) return
 
-      // single pointer: a press on a pin is the pin's own (drag/tap)
-      if ((e.target as Element | null)?.closest?.('[data-pin]')) return
       const o = optsRef.current
+      // only let a pin keep the press when pins are draggable; otherwise pan/paint
+      if (o.pinsDraggable?.() && (e.target as Element | null)?.closest?.('[data-pin]')) return
       const wantsPan = o.shouldPan ? o.shouldPan(e) : true
       if (wantsPan) {
         const rect = vp.getBoundingClientRect()

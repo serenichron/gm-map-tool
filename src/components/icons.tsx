@@ -67,6 +67,19 @@ const PATHS: Record<string, JSX.Element> = {
     </>
   ),
   check: <path d="M20 6L9 17l-5-5" />,
+  back: (
+    <>
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </>
+  ),
 }
 
 export function Icon({

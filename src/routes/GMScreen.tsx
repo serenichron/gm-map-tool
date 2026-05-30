@@ -296,6 +296,7 @@ function GMWorkspace() {
     {
       onScaleChange: setZoom,
       shouldPan: (e) => previewRef.current || e.button !== 0 || toolRef.current === 'pan',
+      pinsDraggable: () => !previewRef.current && toolRef.current === 'pin',
       onPaintStart: (pt) => {
         if (previewRef.current) return
         const t = toolRef.current
@@ -890,7 +891,6 @@ function GMWorkspace() {
             onDelete={removeRoom}
             onExport={() => void exportRooms()}
             onImport={() => importRef.current?.click()}
-            onSignOut={hasSupabase ? () => void signOutGm() : undefined}
           />
           <button className={iconBtn} onClick={() => void copyPlayerLink()} title="Copy the player join link">
             <Icon name={copied ? 'check' : 'copy'} />
@@ -1148,7 +1148,12 @@ function GMWorkspace() {
   ) : undefined
 
   return (
-    <AppShell role="gm" topRight={topRight} toolbar={toolbar}>
+    <AppShell
+      role="gm"
+      topRight={topRight}
+      toolbar={toolbar}
+      onSignOut={hasSupabase ? () => void signOutGm() : undefined}
+    >
       <div
         ref={workspaceRef}
         className="relative flex flex-1 bg-[radial-gradient(130%_100%_at_50%_30%,#241a11_0%,#140e08_70%,#0a0704_100%)]"
@@ -1199,7 +1204,7 @@ function GMWorkspace() {
                     <PinMarker
                       key={p.id}
                       pin={p}
-                      interactive
+                      interactive={tool === 'pin'}
                       screenToImage={screenToImage}
                       onMove={movePin}
                       onOpen={setSelectedId}
