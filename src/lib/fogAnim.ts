@@ -88,7 +88,12 @@ export class FogHaze {
   private raf = 0
   private last = 0
   private running = false
+  private wasHidden = false
   private tex = tile()
+  /** called on the first painted frame after the tab/app returns from the
+   *  background — the moment the canvas is live again, so static fog layers
+   *  (which the OS may have wiped) can be repainted reliably. */
+  onResume: (() => void) | null = null
 
   configure(anim: HTMLCanvasElement, mask: HTMLCanvasElement, w: number, h: number) {
     this.ax = anim.getContext('2d')
@@ -110,7 +115,16 @@ export class FogHaze {
   private tick = (t: number) => {
     if (!this.running) return
     this.raf = requestAnimationFrame(this.tick)
-    if (document.hidden) return
+    if (document.hidden) {
+      this.wasHidden = true
+      return
+    }
+    // first live frame back from the background: repaint the static layers
+    if (this.wasHidden) {
+      this.wasHidden = false
+      this.last = 0
+      this.onResume?.()
+    }
     if (t - this.last < 33) return // ~30fps
     this.last = t
     this.draw(t)

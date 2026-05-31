@@ -173,6 +173,8 @@ export function FogView({
   // visibilitychange only fires on an actual change (not initial load); pageshow
   // only redraws on a bfcache restore — so initial load isn't double-rendered.
   useEffect(() => {
+    // most reliable signal: the haze loop's first painted frame after resuming
+    hazeRef.current.onResume = renderFog
     const onVisible = () => {
       if (!document.hidden) renderFog()
     }
@@ -181,9 +183,12 @@ export function FogView({
     }
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('pageshow', onPageShow)
+    window.addEventListener('focus', renderFog)
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('pageshow', onPageShow)
+      window.removeEventListener('focus', renderFog)
+      hazeRef.current.onResume = null
       hazeRef.current.stop()
     }
   }, [renderFog])
