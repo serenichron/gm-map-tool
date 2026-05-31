@@ -1,5 +1,6 @@
 import { DOMAINS, getPinColor, type Pin } from '../lib/pins.ts'
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
+import { ColorPicker } from './ColorPicker.tsx'
 
 /**
  * Edit a pin's title, marker (icon + colour), player note and GM-only note.
@@ -77,7 +78,7 @@ export function PinEditor({
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
             Colour
           </span>
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
             {DOMAINS.map((d) => {
               const selected = getPinColor(pin).toLowerCase() === d.color.toLowerCase()
               return (
@@ -94,20 +95,8 @@ export function PinEditor({
                 />
               )
             })}
-            <label
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-line"
-              title="Custom colour"
-              style={{ background: getPinColor(pin) }}
-            >
-              <input
-                type="color"
-                value={getPinColor(pin)}
-                onChange={(e) => onPatch({ color: e.target.value })}
-                className="h-0 w-0 opacity-0"
-              />
-              <span className="font-ui text-[12px] text-bone mix-blend-difference">＋</span>
-            </label>
           </div>
+          <ColorPicker value={getPinColor(pin)} onChange={(c) => onPatch({ color: c })} />
         </div>
 
         <label className="block">

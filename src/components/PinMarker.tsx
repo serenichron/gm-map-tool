@@ -11,7 +11,7 @@ export const PIN_COUNTER_SCALE = 'clamp(0.4, var(--inv, 1), 3)'
 
 /** Pick a legible glyph colour (dark on light pins, light on dark pins). */
 function glyphColor(hex: string): string {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+  const m = /^#?([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(hex.trim())
   if (!m) return '#ece0cb'
   const n = parseInt(m[1], 16)
   const lum = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)
