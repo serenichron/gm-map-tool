@@ -190,16 +190,32 @@ export function FogView({
 
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
 
-  // tap anywhere outside the open popover (and not on a pin) closes it
+  // a quick tap-and-release outside the open popover (and not on a pin) closes
+  // it — but a press that drags (panning) or is held (tap-and-hold) leaves it open
   useEffect(() => {
     if (!selectedId) return
+    let start: { x: number; y: number; t: number; outside: boolean } | null = null
     const onDown = (e: PointerEvent) => {
       const t = e.target as Element | null
-      if (t?.closest('[data-popover]') || t?.closest('[data-pin]')) return
-      setSelectedId(null)
+      const outside = !(t?.closest('[data-popover]') || t?.closest('[data-pin]'))
+      start = { x: e.clientX, y: e.clientY, t: e.timeStamp, outside }
+    }
+    const onUp = (e: PointerEvent) => {
+      if (
+        start?.outside &&
+        Math.hypot(e.clientX - start.x, e.clientY - start.y) <= 4 &&
+        e.timeStamp - start.t <= 400
+      ) {
+        setSelectedId(null)
+      }
+      start = null
     }
     document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
+    document.addEventListener('pointerup', onUp)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('pointerup', onUp)
+    }
   }, [selectedId])
 
   return (
