@@ -68,6 +68,9 @@ export function FogView({
   const underAlpha = Math.min(1, (strength / 100) * 1.8)
   const overAlpha = (strength / 100) * 0.2
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // true once fog has actually been drawn this session; drives a dust curtain
+  // that hides the bare map whenever fog isn't painted (initial load + resume)
+  const [painted, setPainted] = useState(false)
   const readyRef = useRef(false)
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
@@ -142,6 +145,7 @@ export function FogView({
       hazeRef.current.configure(anim, cover, W, H)
     }
 
+    setPainted(true)
     if (!readyRef.current) {
       readyRef.current = true
       onReadyRef.current?.()
@@ -176,7 +180,10 @@ export function FogView({
     // most reliable signal: the haze loop's first painted frame after resuming
     hazeRef.current.onResume = renderFog
     const onVisible = () => {
-      if (!document.hidden) renderFog()
+      // raise the curtain the moment we're hidden, so a wiped canvas on
+      // resume is covered until the repaint lands
+      if (document.hidden) setPainted(false)
+      else renderFog()
     }
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) renderFog()
@@ -242,6 +249,13 @@ export function FogView({
           opacity={overAlpha}
         />
       )}
+      {/* dust curtain: hides the bare map whenever fog isn't painted (initial
+          load, and the instant after returning from the background). Fades out
+          as soon as fog draws, so it's invisible in normal use. */}
+      <div
+        className="pointer-events-none absolute left-0 top-0 transition-opacity duration-300"
+        style={{ width, height, background: '#16110b', opacity: painted ? 0 : 1 }}
+      />
       <div className="pointer-events-none absolute left-0 top-0" style={{ width, height }}>
         {pins.map((p) => (
           <PinMarker
