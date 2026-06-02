@@ -1,6 +1,24 @@
+import { useState } from 'react'
 import { DOMAINS, getPinColor, type Pin } from '../lib/pins.ts'
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
 import { ColorPicker } from './ColorPicker.tsx'
+
+const SAVED_KEY = 'worldsmith-custom-colors'
+const MAX_SAVED = 15
+// warm checkerboard behind transparent swatches
+const CHECKER: React.CSSProperties = {
+  backgroundImage: 'conic-gradient(#5a4a35 0 25%, #2c2117 0 50%, #5a4a35 0 75%, #2c2117 0)',
+  backgroundSize: '10px 10px',
+}
+
+function loadSaved(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, MAX_SAVED) : []
+  } catch {
+    return []
+  }
+}
 
 /**
  * Edit a pin's title, marker (icon + colour), player note and GM-only note.
@@ -18,6 +36,22 @@ export function PinEditor({
   onDelete: () => void
   onClose: () => void
 }) {
+  const [saved, setSaved] = useState<string[]>(loadSaved)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const current = getPinColor(pin)
+
+  function persist(next: string[]) {
+    setSaved(next)
+    localStorage.setItem(SAVED_KEY, JSON.stringify(next))
+  }
+  function saveCurrent() {
+    if (!saved.includes(current) && saved.length < MAX_SAVED) persist([...saved, current])
+    setPickerOpen(false)
+  }
+  function removeColor(c: string) {
+    persist(saved.filter((x) => x !== c))
+  }
+
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-2xl border-t border-line bg-gradient-to-b from-panel-2 to-[#1c150d] shadow-[0_-12px_30px_rgba(0,0,0,.4)] sm:inset-y-0 sm:left-auto sm:right-0 sm:bottom-auto sm:max-h-none sm:w-[340px] sm:rounded-none sm:border-l sm:border-t-0 sm:shadow-[-12px_0_30px_rgba(0,0,0,.4)]">
       <div className="flex items-center justify-between border-b border-line px-[18px] py-4">
@@ -78,9 +112,10 @@ export function PinEditor({
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
             Colour
           </span>
-          <div className="mb-2.5 flex flex-wrap items-center gap-2.5">
+          {/* presets */}
+          <div className="flex flex-wrap items-center gap-2.5">
             {DOMAINS.map((d) => {
-              const selected = getPinColor(pin).toLowerCase() === d.color.toLowerCase()
+              const selected = current.toLowerCase() === d.color.toLowerCase()
               return (
                 <button
                   key={d.key}
@@ -96,7 +131,64 @@ export function PinEditor({
               )
             })}
           </div>
-          <ColorPicker value={getPinColor(pin)} onChange={(c) => onPatch({ color: c })} />
+
+          <hr className="my-3 border-t border-line" />
+
+          {/* saved custom colours + add */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {saved.map((c) => {
+              const selected = current.toLowerCase() === c.toLowerCase()
+              return (
+                <div key={c} className="group relative">
+                  <button
+                    title={c}
+                    onClick={() => onPatch({ color: c })}
+                    className="block h-7 w-7 rounded-full border-2"
+                    style={{ ...CHECKER, borderColor: selected ? '#fff' : 'transparent' }}
+                  >
+                    <span className="block h-full w-full rounded-full" style={{ background: c }} />
+                  </button>
+                  <button
+                    onClick={() => removeColor(c)}
+                    title="Remove"
+                    className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full border border-line bg-ink text-[10px] leading-none text-bone-dim group-hover:flex hover:text-rust"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )
+            })}
+            <button
+              onClick={() => setPickerOpen((o) => !o)}
+              title="Add a custom colour"
+              className={`flex h-7 w-7 items-center justify-center rounded-full border text-[18px] leading-none transition ${
+                pickerOpen ? 'border-ochre bg-ochre/15 text-gold' : 'border-line text-ochre hover:bg-[#352818]'
+              }`}
+            >
+              +
+            </button>
+          </div>
+
+          {pickerOpen && (
+            <div className="mt-3">
+              <ColorPicker value={current} onChange={(c) => onPatch({ color: c })} />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={saveCurrent}
+                  disabled={saved.includes(current) || saved.length >= MAX_SAVED}
+                  className="flex-1 rounded-[9px] border border-ochre bg-gradient-to-b from-[#3f2e1a] to-[#30230f] px-3 py-2 font-ui text-[12px] font-bold text-gold disabled:opacity-40"
+                >
+                  {saved.includes(current) ? 'Saved' : `Save colour (${saved.length}/${MAX_SAVED})`}
+                </button>
+                <button
+                  onClick={() => setPickerOpen(false)}
+                  className="rounded-[9px] border border-line bg-panel-2 px-3 py-2 font-ui text-[12px] text-bone-dim hover:text-bone"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <label className="block">

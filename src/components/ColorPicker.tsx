@@ -3,15 +3,12 @@ import { useEffect, useRef, useState } from 'react'
 /**
  * A self-contained colour picker — consistent on desktop and mobile (no native
  * <input type="color">, which renders differently per OS and often dim). Has a
- * saturation/value square, a hue bar, a transparency bar, hex + RGB + alpha
- * inputs, and up to 15 saved custom swatches (persisted in localStorage).
+ * saturation/value square, a hue bar, a transparency bar, and hex + RGB + alpha
+ * inputs. Saved swatches live in the caller, not here.
  *
  * `value`/`onChange` are colour strings: `#rrggbb`, or `#rrggbbaa` when the
  * colour has transparency.
  */
-
-const SAVED_KEY = 'worldsmith-custom-colors'
-const MAX_SAVED = 15
 
 type HSVA = { h: number; s: number; v: number; a: number }
 type RGB = { r: number; g: number; b: number }
@@ -67,15 +64,6 @@ function toHex(r: number, g: number, b: number, a: number): string {
   return a >= 1 ? base : base + hex2(a * 255)
 }
 
-function loadSaved(): string[] {
-  try {
-    const v = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')
-    return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, MAX_SAVED) : []
-  } catch {
-    return []
-  }
-}
-
 // warm checkerboard, shown behind transparent colours
 const CHECKER: React.CSSProperties = {
   backgroundImage: 'conic-gradient(#5a4a35 0 25%, #2c2117 0 50%, #5a4a35 0 75%, #2c2117 0)',
@@ -91,7 +79,6 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (hex
   const hsvaRef = useRef(hsva)
   hsvaRef.current = hsva
   const lastEmit = useRef(value)
-  const [saved, setSaved] = useState<string[]>(loadSaved)
 
   // re-sync when the colour is changed from outside (e.g. a domain swatch)
   useEffect(() => {
@@ -158,22 +145,6 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (hex
     if (!p) return
     const { h, s, v } = rgbToHsv(p.r, p.g, p.b)
     commit({ h, s, v, a: p.a })
-  }
-
-  function saveCurrent() {
-    setSaved((prev) => {
-      if (prev.includes(hex)) return prev
-      const next = [hex, ...prev].slice(0, MAX_SAVED)
-      localStorage.setItem(SAVED_KEY, JSON.stringify(next))
-      return next
-    })
-  }
-  function removeSaved(c: string) {
-    setSaved((prev) => {
-      const next = prev.filter((x) => x !== c)
-      localStorage.setItem(SAVED_KEY, JSON.stringify(next))
-      return next
-    })
   }
 
   const numCls =
@@ -271,44 +242,6 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (hex
             onChange={(e) => commit({ ...hsva, a: clamp01((Math.round(+e.target.value) || 0) / 100) })}
             className={numCls}
           />
-        </div>
-      </div>
-
-      {/* saved custom colours */}
-      <div className="mt-3">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="font-ui text-[9px] uppercase tracking-[0.08em] text-bone-dim">
-            Saved ({saved.length}/{MAX_SAVED})
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            onClick={saveCurrent}
-            disabled={saved.length >= MAX_SAVED || saved.includes(hex)}
-            title="Save current colour"
-            className="flex h-6 w-6 items-center justify-center rounded-[6px] border border-line text-[15px] leading-none text-ochre transition hover:bg-[#352818] disabled:opacity-30"
-          >
-            +
-          </button>
-          {saved.map((c) => (
-            <div key={c} className="group relative">
-              <button
-                onClick={() => applyColorString(c)}
-                title={c}
-                className="h-6 w-6 rounded-[6px] border border-line"
-                style={CHECKER}
-              >
-                <span className="block h-full w-full rounded-[5px]" style={{ background: c }} />
-              </button>
-              <button
-                onClick={() => removeSaved(c)}
-                title="Remove"
-                className="absolute -right-1 -top-1 hidden h-3.5 w-3.5 items-center justify-center rounded-full border border-line bg-ink text-[9px] leading-none text-bone-dim group-hover:flex hover:text-rust"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
         </div>
       </div>
     </div>
