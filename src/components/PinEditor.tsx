@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { DOMAINS, getPinColor, DEFAULT_PIN_BORDER, DEFAULT_PIN_LABEL_BG, type Pin } from '../lib/pins.ts'
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
 import { PinShape, glyphColor } from './PinMarker.tsx'
@@ -48,6 +48,7 @@ export function PinEditor({
   const [saved, setSaved] = useState<string[]>(loadSaved)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [extra, setExtra] = useState<'border' | 'label' | null>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
   const current = getPinColor(pin)
   const labelBg = pin.labelBg || DEFAULT_PIN_LABEL_BG
   const labelFg = glyphColor(labelBg)
@@ -137,14 +138,26 @@ export function PinEditor({
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
             Title
           </span>
-          <input
-            type="text"
-            value={pin.title}
-            onChange={(e) => onPatch({ title: e.target.value })}
-            placeholder="e.g. The Glass Spines"
-            autoComplete="off"
-            className="w-full rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-body text-[14px] text-bone outline-none focus:border-ochre"
-          />
+          <div className="flex items-stretch gap-2">
+            <input
+              ref={titleRef}
+              type="text"
+              value={pin.title}
+              onChange={(e) => onPatch({ title: e.target.value })}
+              onKeyDown={(e) => e.key === 'Enter' && titleRef.current?.blur()}
+              placeholder="e.g. The Glass Spines"
+              autoComplete="off"
+              enterKeyHint="done"
+              className="w-full rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-body text-[14px] text-bone outline-none focus:border-ochre"
+            />
+            <button
+              type="button"
+              onClick={() => titleRef.current?.blur()}
+              className="shrink-0 rounded-[9px] border border-line bg-panel-2 px-3 font-ui text-[12px] font-semibold text-bone-dim hover:text-bone"
+            >
+              Done
+            </button>
+          </div>
         </label>
 
         <div>
