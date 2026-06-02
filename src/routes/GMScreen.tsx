@@ -1261,6 +1261,9 @@ function GMWorkspace() {
       {selectedPin && (
         <PinEditor
           pin={selectedPin}
+          mapSrc={map?.src}
+          mapWidth={map?.width}
+          mapHeight={map?.height}
           onPatch={(patch) => patchPin(selectedPin.id, patch)}
           onDelete={() => deletePin(selectedPin.id)}
           onClose={() => setSelectedId(null)}
