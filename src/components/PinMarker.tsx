@@ -15,12 +15,39 @@ const DRAG_THRESHOLD = 4 // px before a press becomes a drag rather than a tap
 export const PIN_COUNTER_SCALE = 'clamp(0.4, var(--inv, 1), 3)'
 
 /** Pick a legible glyph colour (dark on light pins, light on dark pins). */
-function glyphColor(hex: string): string {
+export function glyphColor(hex: string): string {
   const m = /^#?([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(hex.trim())
   if (!m) return '#ece0cb'
   const n = parseInt(m[1], 16)
   const lum = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)
   return lum > 150 ? '#16110b' : '#ece0cb'
+}
+
+/** The teardrop pin shape with its glyph — shared by the map marker and the
+ *  editor's live preview so they always match. `size` is the width in px. */
+export function PinShape({ color, icon, size = 26 }: { color: string; icon: string; size?: number }) {
+  const w = size
+  const h = (size * 33) / 26
+  const g = size * 0.5
+  return (
+    <div className="relative" style={{ width: w, height: h }}>
+      <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="block">
+        <path
+          d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
+          fill={color}
+          stroke="rgba(0,0,0,.55)"
+          strokeWidth="1.5"
+        />
+        <circle cx="14" cy="13" r="8.5" fill="rgba(0,0,0,.16)" />
+      </svg>
+      <div
+        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ top: (h * 13) / 36, width: g, height: g, color: glyphColor(color) }}
+      >
+        <PinGlyph name={icon || 'pin'} className="h-full w-full" />
+      </div>
+    </div>
+  )
 }
 
 /**
@@ -45,7 +72,6 @@ export function PinMarker({
   onOpen: (id: string) => void
 }) {
   const color = getPinColor(pin)
-  const fg = glyphColor(color)
   const dragging = useRef(false)
 
   function onPointerDown(e: React.PointerEvent) {
@@ -86,23 +112,7 @@ export function PinMarker({
           cursor: interactive ? 'grab' : 'pointer',
         }}
       >
-        <div className="relative" style={{ width: 26, height: 33 }}>
-          <svg viewBox="0 0 28 36" style={{ width: 26, height: 33 }} className="block">
-            <path
-              d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
-              fill={color}
-              stroke="rgba(0,0,0,.55)"
-              strokeWidth="1.5"
-            />
-            <circle cx="14" cy="13" r="8.5" fill="rgba(0,0,0,.16)" />
-          </svg>
-          <div
-            className="absolute left-1/2 top-[12px] -translate-x-1/2 -translate-y-1/2"
-            style={{ color: fg }}
-          >
-            <PinGlyph name={pin.icon || 'pin'} className="h-[13px] w-[13px]" />
-          </div>
-        </div>
+        <PinShape color={color} icon={pin.icon || 'pin'} size={26} />
         {pin.title &&
           (labelSide === 'left' ? (
             // label to the LEFT of the pin head, arrow pointing right at the pin

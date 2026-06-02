@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { DOMAINS, getPinColor, type Pin } from '../lib/pins.ts'
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
+import { PinShape } from './PinMarker.tsx'
 import { ColorPicker } from './ColorPicker.tsx'
 
 const SAVED_KEY = 'worldsmith-custom-colors'
@@ -55,7 +56,14 @@ export function PinEditor({
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-2xl border-t border-line bg-gradient-to-b from-panel-2 to-[#1c150d] shadow-[0_-12px_30px_rgba(0,0,0,.4)] sm:inset-y-0 sm:left-auto sm:right-0 sm:bottom-auto sm:max-h-none sm:w-[340px] sm:rounded-none sm:border-l sm:border-t-0 sm:shadow-[-12px_0_30px_rgba(0,0,0,.4)]">
       <div className="flex items-center justify-between border-b border-line px-[18px] py-4">
-        <h3 className="font-display text-[18px] font-semibold text-bone">Pin</h3>
+        <div className="flex items-center gap-3">
+          {/* live preview, so the pin is visible while editing even when the
+              drawer covers the map (esp. on phones) */}
+          <PinShape color={current} icon={pin.icon || 'pin'} size={30} />
+          <h3 className="font-display text-[18px] font-semibold text-bone">
+            {pin.title || 'Pin'}
+          </h3>
+        </div>
         <button
           onClick={onClose}
           className="h-[30px] w-[30px] rounded-[7px] text-[20px] text-bone-dim hover:bg-[#2a2015] hover:text-bone"
