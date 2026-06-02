@@ -14,7 +14,7 @@ import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
 import { pixelToHex } from '../lib/hex.ts'
 import { newPinId, DEFAULT_PIN_COLOR, computeLabelSides, type Pin } from '../lib/pins.ts'
-import { useMapLuminance } from '../lib/luminance.ts'
+import { swallowNextClick } from '../lib/tap.ts'
 import { idbGet, idbSet, idbDel, imgKey, workKey, type WorkingState } from '../lib/storage.ts'
 import {
   createLocalBackend,
@@ -296,16 +296,21 @@ function GMWorkspace() {
     map?.height ?? 0,
     {
       onScaleChange: setZoom,
-      shouldPan: (e) => previewRef.current || e.button !== 0 || toolRef.current === 'pan',
+      // pin mode pans on a drag; a clean tap drops a pin (see onTap)
+      shouldPan: (e) =>
+        previewRef.current || e.button !== 0 || toolRef.current === 'pan' || toolRef.current === 'pin',
       pinsDraggable: () => !previewRef.current && toolRef.current === 'pin',
+      onTap: (pt) => {
+        if (previewRef.current) return
+        if (toolRef.current === 'pin') {
+          swallowNextClick() // adding a pin opens the editor under the finger
+          addPin(pt.x, pt.y)
+        }
+      },
       onPaintStart: (pt) => {
         if (previewRef.current) return
         const t = toolRef.current
-        if (t === 'pan') return
-        if (t === 'pin') {
-          addPin(pt.x, pt.y)
-          return
-        }
+        if (t === 'pan' || t === 'pin') return // pin/pan don't paint (pin pans + taps)
         if (t === 'tile') {
           const seed = Math.floor(Math.random() * 0xffffffff)
           fogRef.current.beginHexBatch(tileActionRef.current, gridSizeRef.current, seed, gridAngleRef.current)
@@ -1149,7 +1154,6 @@ function GMWorkspace() {
   ) : undefined
 
   const labelSides = computeLabelSides(pins)
-  const lum = useMapLuminance(map?.src)
 
   return (
     <AppShell
@@ -1210,7 +1214,6 @@ function GMWorkspace() {
                       pin={p}
                       interactive={tool === 'pin'}
                       labelSide={labelSides[p.id]}
-                      darkUnder={lum ? lum(p.x, p.y) < 115 : false}
                       screenToImage={screenToImage}
                       onMove={movePin}
                       onOpen={setSelectedId}

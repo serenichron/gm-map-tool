@@ -25,10 +25,14 @@ export type Pin = {
   title: string
   playerNote: string
   gmNote: string
+  borderColor?: string // pin outline; defaults to a dark grey
+  labelBg?: string // title pill background; defaults to a dark wash
   domain?: CrystalDomain // legacy pins (pre-colour); used as a fallback
 }
 
 export const DEFAULT_PIN_COLOR = '#c8923d' // amber
+export const DEFAULT_PIN_BORDER = '#403a32' // dark warm grey (not black)
+export const DEFAULT_PIN_LABEL_BG = '#0c0804cc' // dark wash, ~0.8 alpha
 
 /** Resolve a pin's colour, falling back to its legacy crystal domain. */
 export function getPinColor(p: { color?: string; domain?: CrystalDomain }): string {

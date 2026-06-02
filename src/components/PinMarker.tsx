@@ -1,8 +1,8 @@
 import { useRef } from 'react'
-import { getPinColor, type LabelSide, type Pin } from '../lib/pins.ts'
+import { getPinColor, DEFAULT_PIN_BORDER, DEFAULT_PIN_LABEL_BG, type LabelSide, type Pin } from '../lib/pins.ts'
 import { PinGlyph } from './PinGlyph.tsx'
+import { swallowNextClick } from '../lib/tap.ts'
 
-const LABEL_BG = 'rgba(12,8,4,.8)'
 // fade titles in only once zoomed in a bit (--inv = 1/scale): hidden when zoomed
 // out (crowded), visible up close. Keeps the map readable.
 const LABEL_FADE = 'clamp(0, (1.65 - var(--inv, 1)) * 1.8, 1)'
@@ -25,22 +25,21 @@ export function glyphColor(hex: string): string {
 
 /** The teardrop pin shape with its glyph — shared by the map marker and the
  *  editor's live preview so they always match. `size` is the width in px.
- *  `darkUnder` flips the rim light (for dark map art beneath). */
+ *  `stroke` is the outline colour. */
 export function PinShape({
   color,
   icon,
   size = 26,
-  darkUnder = false,
+  stroke = DEFAULT_PIN_BORDER,
 }: {
   color: string
   icon: string
   size?: number
-  darkUnder?: boolean
+  stroke?: string
 }) {
   const w = size
   const h = (size * 33) / 26
   const g = size * 0.5
-  const stroke = darkUnder ? 'rgba(236,224,203,.92)' : 'rgba(0,0,0,.6)'
   return (
     <div
       className="relative"
@@ -51,7 +50,7 @@ export function PinShape({
           d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
           fill={color}
           stroke={stroke}
-          strokeWidth={darkUnder ? 1.8 : 1.5}
+          strokeWidth={1.6}
         />
         <circle cx="14" cy="13" r="8.5" fill="rgba(0,0,0,.16)" />
       </svg>
@@ -75,7 +74,6 @@ export function PinMarker({
   pin,
   interactive,
   labelSide = 'right',
-  darkUnder = false,
   screenToImage,
   onMove,
   onOpen,
@@ -83,12 +81,15 @@ export function PinMarker({
   pin: Pin
   interactive: boolean
   labelSide?: LabelSide
-  darkUnder?: boolean
   screenToImage: (clientX: number, clientY: number) => { x: number; y: number }
   onMove: (id: string, x: number, y: number) => void
   onOpen: (id: string) => void
 }) {
   const color = getPinColor(pin)
+  const border = pin.borderColor || DEFAULT_PIN_BORDER
+  const labelBg = pin.labelBg || DEFAULT_PIN_LABEL_BG
+  const labelFg = glyphColor(labelBg)
+  const labelBorder = labelFg === '#16110b' ? 'rgba(0,0,0,.28)' : 'rgba(74,58,39,.7)'
   const dragging = useRef(false)
 
   function onPointerDown(e: React.PointerEvent) {
@@ -108,7 +109,12 @@ export function PinMarker({
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
-      if (!dragging.current) onOpen(pin.id)
+      if (!dragging.current) {
+        // eat the synthesised click so it can't tap a control on the drawer
+        // that opens under the finger
+        swallowNextClick()
+        onOpen(pin.id)
+      }
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
@@ -129,17 +135,13 @@ export function PinMarker({
           cursor: interactive ? 'grab' : 'pointer',
         }}
       >
-        <PinShape color={color} icon={pin.icon || 'pin'} size={26} darkUnder={darkUnder} />
+        <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} />
         {pin.title &&
           (() => {
-            // adapt the label to the art beneath: light pill on dark ground
-            const bg = darkUnder ? 'rgba(237,224,203,.94)' : LABEL_BG
-            const fg = darkUnder ? '#16110b' : '#ece0cb'
-            const bd = darkUnder ? 'rgba(0,0,0,.3)' : 'rgba(74,58,39,.7)'
             const pill = (
               <div
                 className="max-w-[116px] min-w-0 truncate rounded-[5px] border px-1.5 py-px font-ui text-[10px] font-semibold shadow-[0_1px_4px_rgba(0,0,0,.5)]"
-                style={{ background: bg, color: fg, borderColor: bd }}
+                style={{ background: labelBg, color: labelFg, borderColor: labelBorder }}
               >
                 {pin.title}
               </div>
@@ -151,7 +153,7 @@ export function PinMarker({
                 style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
               >
                 {pill}
-                <span className="h-0 w-0 border-y-[5px] border-l-[6px] border-y-transparent" style={{ borderLeftColor: bg }} />
+                <span className="h-0 w-0 border-y-[5px] border-l-[6px] border-y-transparent" style={{ borderLeftColor: labelBg }} />
               </div>
             ) : (
               // label to the RIGHT of the pin head, arrow pointing left at the pin
@@ -159,7 +161,7 @@ export function PinMarker({
                 className="pointer-events-none absolute left-[27px] top-[13px] flex -translate-y-1/2 items-center"
                 style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
               >
-                <span className="h-0 w-0 border-y-[5px] border-r-[6px] border-y-transparent" style={{ borderRightColor: bg }} />
+                <span className="h-0 w-0 border-y-[5px] border-r-[6px] border-y-transparent" style={{ borderRightColor: labelBg }} />
                 {pill}
               </div>
             )

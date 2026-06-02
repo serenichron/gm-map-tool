@@ -9,7 +9,6 @@ import { PinPopover } from './PinPopover.tsx'
 import type { GridSettings } from '../lib/types.ts'
 import type { PublicPin } from '../lib/transport.ts'
 import { computeLabelSides } from '../lib/pins.ts'
-import { useMapLuminance } from '../lib/luminance.ts'
 
 /**
  * Build a blurred copy of the fog mask, translated by (dx,dy) WITHOUT scaling
@@ -204,7 +203,6 @@ export function FogView({
 
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
   const labelSides = computeLabelSides(pins)
-  const lum = useMapLuminance(mapSrc)
 
   // a quick tap-and-release outside the open popover (and not on a pin) closes
   // it — but a press that drags (panning) or is held (tap-and-hold) leaves it open
@@ -267,7 +265,6 @@ export function FogView({
             pin={{ ...p, gmNote: '' }}
             interactive={false}
             labelSide={labelSides[p.id]}
-            darkUnder={lum ? lum(p.x, p.y) < 115 : false}
             screenToImage={() => ({ x: 0, y: 0 })}
             onMove={() => {}}
             onOpen={setSelectedId}

@@ -22,6 +22,8 @@ export type ViewportOpts = {
   onPaintStart?: (pt: { x: number; y: number }, e: PointerEvent) => void
   onPaintMove?: (pt: { x: number; y: number }, e: PointerEvent) => void
   onPaintEnd?: (e: PointerEvent) => void
+  /** a pan gesture that didn't move (a tap) — used to place a pin in pin mode */
+  onTap?: (pt: { x: number; y: number }, e: PointerEvent) => void
   /** when true, a press on a pin is left to the pin (drag); otherwise the press
    *  pans/paints as usual (the pin still gets a no-move tap for opening). */
   pinsDraggable?: () => boolean
@@ -108,6 +110,7 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
     // all active pointers (client coords), so we can detect a two-finger pinch
     const pointers = new Map<number, { x: number; y: number }>()
     let pan: { x: number; y: number; ox: number; oy: number } | null = null
+    let panMoved = false
     let painting = false
     // pinch anchors the image point under the gesture's midpoint, so zoom and
     // two-finger pan happen together and stay under the fingers
@@ -153,6 +156,7 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
       if (wantsPan) {
         const rect = vp.getBoundingClientRect()
         pan = { x: e.clientX - rect.left, y: e.clientY - rect.top, ox: view.current.ox, oy: view.current.oy }
+        panMoved = false
         vp.setPointerCapture(e.pointerId)
         vp.style.cursor = 'grabbing'
       } else {
@@ -173,8 +177,11 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
         apply()
       } else if (pan) {
         const rect = vp.getBoundingClientRect()
-        view.current.ox = pan.ox + (e.clientX - rect.left - pan.x)
-        view.current.oy = pan.oy + (e.clientY - rect.top - pan.y)
+        const nx = e.clientX - rect.left
+        const ny = e.clientY - rect.top
+        if (!panMoved && Math.hypot(nx - pan.x, ny - pan.y) > 4) panMoved = true
+        view.current.ox = pan.ox + (nx - pan.x)
+        view.current.oy = pan.oy + (ny - pan.y)
         apply()
       } else if (painting) {
         optsRef.current.onPaintMove?.(toImage(e), e)
@@ -192,6 +199,7 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
         optsRef.current.onPaintEnd?.(e)
       }
       if (pan) {
+        if (!panMoved) optsRef.current.onTap?.(toImage(e), e)
         pan = null
         vp.style.cursor = ''
       }

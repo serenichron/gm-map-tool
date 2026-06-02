@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { DOMAINS, getPinColor, type Pin } from '../lib/pins.ts'
+import { DOMAINS, getPinColor, DEFAULT_PIN_BORDER, DEFAULT_PIN_LABEL_BG, type Pin } from '../lib/pins.ts'
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
 import { PinShape } from './PinMarker.tsx'
 import { ColorPicker } from './ColorPicker.tsx'
-import { useMapLuminance } from '../lib/luminance.ts'
 
 const SAVED_KEY = 'worldsmith-custom-colors'
 const MAX_SAVED = 15
@@ -48,9 +47,8 @@ export function PinEditor({
 }) {
   const [saved, setSaved] = useState<string[]>(loadSaved)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [extra, setExtra] = useState<'border' | 'label' | null>(null)
   const current = getPinColor(pin)
-  const lum = useMapLuminance(mapSrc)
-  const darkUnder = lum ? lum(pin.x, pin.y) < 115 : false
 
   function persist(next: string[]) {
     setSaved(next)
@@ -88,7 +86,12 @@ export function PinEditor({
             className="absolute"
             style={{ left: PREVIEW_W / 2, top: PREVIEW_H / 2, transform: 'translate(-50%, -100%)' }}
           >
-            <PinShape color={current} icon={pin.icon || 'pin'} size={26} darkUnder={darkUnder} />
+            <PinShape
+              color={current}
+              icon={pin.icon || 'pin'}
+              size={26}
+              stroke={pin.borderColor || DEFAULT_PIN_BORDER}
+            />
           </div>
         </div>
         <div className="min-w-0 flex-1">
@@ -230,6 +233,53 @@ export function PinEditor({
               </div>
             </div>
           )}
+        </div>
+
+        <div>
+          <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+            Outline &amp; label
+          </span>
+          {(['border', 'label'] as const).map((kind) => {
+            const isBorder = kind === 'border'
+            const val = isBorder
+              ? pin.borderColor || DEFAULT_PIN_BORDER
+              : pin.labelBg || DEFAULT_PIN_LABEL_BG
+            const custom = isBorder ? !!pin.borderColor : !!pin.labelBg
+            const open = extra === kind
+            return (
+              <div key={kind} className="mb-2">
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => setExtra(open ? null : kind)}
+                    title={val}
+                    className={`block h-7 w-7 rounded-[7px] border-2 ${open ? 'border-ochre' : 'border-line'}`}
+                    style={CHECKER}
+                  >
+                    <span className="block h-full w-full rounded-[5px]" style={{ background: val }} />
+                  </button>
+                  <span className="font-ui text-[13px] text-bone">
+                    {isBorder ? 'Pin outline' : 'Label background'}
+                  </span>
+                  {custom && (
+                    <button
+                      onClick={() => onPatch(isBorder ? { borderColor: undefined } : { labelBg: undefined })}
+                      className="ml-auto font-ui text-[11px] text-bone-dim hover:text-bone"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                {open && (
+                  <div className="mt-2">
+                    <ColorPicker
+                      value={val}
+                      onChange={(c) => onPatch(isBorder ? { borderColor: c } : { labelBg: c })}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         <label className="block">
