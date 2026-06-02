@@ -11,8 +11,8 @@ const DRAG_THRESHOLD = 4 // px before a press becomes a drag rather than a tap
 
 // Counter the stage zoom so the pin holds a constant on-screen size — but only
 // within a band. Clamped, so once you zoom far in it grows with the map, and far
-// out it shrinks with the map (constant while the stage scale is ~0.4×–3×).
-export const PIN_COUNTER_SCALE = 'clamp(0.4, var(--inv, 1), 3)'
+// out it shrinks with the map (constant while the stage scale is ~0.55×–2.5×).
+export const PIN_COUNTER_SCALE = 'clamp(0.4, var(--inv, 1), 1.8)'
 
 /** Pick a legible glyph colour (dark on light pins, light on dark pins). */
 export function glyphColor(hex: string): string {

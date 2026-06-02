@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { DOMAINS, getPinColor, DEFAULT_PIN_BORDER, DEFAULT_PIN_LABEL_BG, type Pin } from '../lib/pins.ts'
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
-import { PinShape } from './PinMarker.tsx'
+import { PinShape, glyphColor } from './PinMarker.tsx'
 import { ColorPicker } from './ColorPicker.tsx'
 
 const SAVED_KEY = 'worldsmith-custom-colors'
@@ -49,6 +49,8 @@ export function PinEditor({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [extra, setExtra] = useState<'border' | 'label' | null>(null)
   const current = getPinColor(pin)
+  const labelBg = pin.labelBg || DEFAULT_PIN_LABEL_BG
+  const labelFg = glyphColor(labelBg)
 
   function persist(next: string[]) {
     setSaved(next)
@@ -93,6 +95,28 @@ export function PinEditor({
               stroke={pin.borderColor || DEFAULT_PIN_BORDER}
             />
           </div>
+          {pin.title && (
+            // title label to the right of the pin head, as it appears on the map
+            <div
+              className="absolute flex items-center"
+              style={{ left: PREVIEW_W / 2 + 15, top: PREVIEW_H / 2 - 21, transform: 'translateY(-50%)' }}
+            >
+              <span
+                className="h-0 w-0 border-y-[5px] border-r-[6px] border-y-transparent"
+                style={{ borderRightColor: labelBg }}
+              />
+              <div
+                className="max-w-[78px] truncate rounded-[5px] border px-1.5 py-px font-ui text-[10px] font-semibold shadow-[0_1px_4px_rgba(0,0,0,.5)]"
+                style={{
+                  background: labelBg,
+                  color: labelFg,
+                  borderColor: labelFg === '#16110b' ? 'rgba(0,0,0,.28)' : 'rgba(74,58,39,.7)',
+                }}
+              >
+                {pin.title}
+              </div>
+            </div>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-display text-[18px] font-semibold text-bone">
@@ -187,10 +211,13 @@ export function PinEditor({
                   <button
                     title={c}
                     onClick={() => onPatch({ color: c })}
-                    className="block h-7 w-7 rounded-full border-2"
-                    style={{ ...CHECKER, borderColor: selected ? '#fff' : 'transparent' }}
+                    className="relative block h-7 w-7 rounded-full"
+                    style={{
+                      boxShadow: selected ? '0 0 0 2px #fff, 0 0 10px rgba(255,255,255,.25)' : 'inset 0 0 0 1px rgba(0,0,0,.35)',
+                    }}
                   >
-                    <span className="block h-full w-full rounded-full" style={{ background: c }} />
+                    <span className="absolute inset-0 rounded-full" style={CHECKER} />
+                    <span className="absolute inset-0 rounded-full" style={{ background: c }} />
                   </button>
                   <button
                     onClick={() => removeColor(c)}
