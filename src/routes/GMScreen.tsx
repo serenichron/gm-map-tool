@@ -14,6 +14,7 @@ import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
 import { pixelToHex } from '../lib/hex.ts'
 import { newPinId, DEFAULT_PIN_COLOR, computeLabelSides, type Pin } from '../lib/pins.ts'
+import { useMapLuminance } from '../lib/luminance.ts'
 import { idbGet, idbSet, idbDel, imgKey, workKey, type WorkingState } from '../lib/storage.ts'
 import {
   createLocalBackend,
@@ -1148,6 +1149,7 @@ function GMWorkspace() {
   ) : undefined
 
   const labelSides = computeLabelSides(pins)
+  const lum = useMapLuminance(map?.src)
 
   return (
     <AppShell
@@ -1208,6 +1210,7 @@ function GMWorkspace() {
                       pin={p}
                       interactive={tool === 'pin'}
                       labelSide={labelSides[p.id]}
+                      darkUnder={lum ? lum(p.x, p.y) < 115 : false}
                       screenToImage={screenToImage}
                       onMove={movePin}
                       onOpen={setSelectedId}

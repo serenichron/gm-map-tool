@@ -3,6 +3,7 @@ import { DOMAINS, getPinColor, type Pin } from '../lib/pins.ts'
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
 import { PinShape } from './PinMarker.tsx'
 import { ColorPicker } from './ColorPicker.tsx'
+import { useMapLuminance } from '../lib/luminance.ts'
 
 const SAVED_KEY = 'worldsmith-custom-colors'
 const MAX_SAVED = 15
@@ -48,6 +49,8 @@ export function PinEditor({
   const [saved, setSaved] = useState<string[]>(loadSaved)
   const [pickerOpen, setPickerOpen] = useState(false)
   const current = getPinColor(pin)
+  const lum = useMapLuminance(mapSrc)
+  const darkUnder = lum ? lum(pin.x, pin.y) < 115 : false
 
   function persist(next: string[]) {
     setSaved(next)
@@ -85,7 +88,7 @@ export function PinEditor({
             className="absolute"
             style={{ left: PREVIEW_W / 2, top: PREVIEW_H / 2, transform: 'translate(-50%, -100%)' }}
           >
-            <PinShape color={current} icon={pin.icon || 'pin'} size={26} />
+            <PinShape color={current} icon={pin.icon || 'pin'} size={26} darkUnder={darkUnder} />
           </div>
         </div>
         <div className="min-w-0 flex-1">

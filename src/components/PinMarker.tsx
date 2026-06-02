@@ -24,19 +24,34 @@ export function glyphColor(hex: string): string {
 }
 
 /** The teardrop pin shape with its glyph — shared by the map marker and the
- *  editor's live preview so they always match. `size` is the width in px. */
-export function PinShape({ color, icon, size = 26 }: { color: string; icon: string; size?: number }) {
+ *  editor's live preview so they always match. `size` is the width in px.
+ *  `darkUnder` flips the rim light (for dark map art beneath). */
+export function PinShape({
+  color,
+  icon,
+  size = 26,
+  darkUnder = false,
+}: {
+  color: string
+  icon: string
+  size?: number
+  darkUnder?: boolean
+}) {
   const w = size
   const h = (size * 33) / 26
   const g = size * 0.5
+  const stroke = darkUnder ? 'rgba(236,224,203,.92)' : 'rgba(0,0,0,.6)'
   return (
-    <div className="relative" style={{ width: w, height: h }}>
+    <div
+      className="relative"
+      style={{ width: w, height: h, filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,.55))' }}
+    >
       <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="block">
         <path
           d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
           fill={color}
-          stroke="rgba(0,0,0,.55)"
-          strokeWidth="1.5"
+          stroke={stroke}
+          strokeWidth={darkUnder ? 1.8 : 1.5}
         />
         <circle cx="14" cy="13" r="8.5" fill="rgba(0,0,0,.16)" />
       </svg>
@@ -60,6 +75,7 @@ export function PinMarker({
   pin,
   interactive,
   labelSide = 'right',
+  darkUnder = false,
   screenToImage,
   onMove,
   onOpen,
@@ -67,6 +83,7 @@ export function PinMarker({
   pin: Pin
   interactive: boolean
   labelSide?: LabelSide
+  darkUnder?: boolean
   screenToImage: (clientX: number, clientY: number) => { x: number; y: number }
   onMove: (id: string, x: number, y: number) => void
   onOpen: (id: string) => void
@@ -112,31 +129,41 @@ export function PinMarker({
           cursor: interactive ? 'grab' : 'pointer',
         }}
       >
-        <PinShape color={color} icon={pin.icon || 'pin'} size={26} />
+        <PinShape color={color} icon={pin.icon || 'pin'} size={26} darkUnder={darkUnder} />
         {pin.title &&
-          (labelSide === 'left' ? (
-            // label to the LEFT of the pin head, arrow pointing right at the pin
-            <div
-              className="pointer-events-none absolute right-[27px] top-[13px] flex -translate-y-1/2 items-center"
-              style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
-            >
-              <div className="max-w-[116px] min-w-0 truncate rounded-[5px] border border-line/70 px-1.5 py-px font-ui text-[10px] font-semibold text-bone shadow-[0_1px_4px_rgba(0,0,0,.5)]" style={{ background: LABEL_BG }}>
+          (() => {
+            // adapt the label to the art beneath: light pill on dark ground
+            const bg = darkUnder ? 'rgba(237,224,203,.94)' : LABEL_BG
+            const fg = darkUnder ? '#16110b' : '#ece0cb'
+            const bd = darkUnder ? 'rgba(0,0,0,.3)' : 'rgba(74,58,39,.7)'
+            const pill = (
+              <div
+                className="max-w-[116px] min-w-0 truncate rounded-[5px] border px-1.5 py-px font-ui text-[10px] font-semibold shadow-[0_1px_4px_rgba(0,0,0,.5)]"
+                style={{ background: bg, color: fg, borderColor: bd }}
+              >
                 {pin.title}
               </div>
-              <span className="h-0 w-0 border-y-[5px] border-l-[6px] border-y-transparent" style={{ borderLeftColor: LABEL_BG }} />
-            </div>
-          ) : (
-            // label to the RIGHT of the pin head, arrow pointing left at the pin
-            <div
-              className="pointer-events-none absolute left-[27px] top-[13px] flex -translate-y-1/2 items-center"
-              style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
-            >
-              <span className="h-0 w-0 border-y-[5px] border-r-[6px] border-y-transparent" style={{ borderRightColor: LABEL_BG }} />
-              <div className="max-w-[116px] min-w-0 truncate rounded-[5px] border border-line/70 px-1.5 py-px font-ui text-[10px] font-semibold text-bone shadow-[0_1px_4px_rgba(0,0,0,.5)]" style={{ background: LABEL_BG }}>
-                {pin.title}
+            )
+            return labelSide === 'left' ? (
+              // label to the LEFT of the pin head, arrow pointing right at the pin
+              <div
+                className="pointer-events-none absolute right-[27px] top-[13px] flex -translate-y-1/2 items-center"
+                style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
+              >
+                {pill}
+                <span className="h-0 w-0 border-y-[5px] border-l-[6px] border-y-transparent" style={{ borderLeftColor: bg }} />
               </div>
-            </div>
-          ))}
+            ) : (
+              // label to the RIGHT of the pin head, arrow pointing left at the pin
+              <div
+                className="pointer-events-none absolute left-[27px] top-[13px] flex -translate-y-1/2 items-center"
+                style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
+              >
+                <span className="h-0 w-0 border-y-[5px] border-r-[6px] border-y-transparent" style={{ borderRightColor: bg }} />
+                {pill}
+              </div>
+            )
+          })()}
       </div>
     </div>
   )
