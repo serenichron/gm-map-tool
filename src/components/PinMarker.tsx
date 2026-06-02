@@ -42,20 +42,9 @@ export function PinShape({
   const w = size
   const h = (size * 33) / 26
   const g = size * 0.5
-  return (
-    <div
-      className="relative"
-      style={{
-        width: w,
-        height: h,
-        // when surfaced over fog, sit between the layers: softened and dimmed
-        filter: veiled
-          ? 'drop-shadow(0 1.5px 2px rgba(0,0,0,.5)) blur(0.7px) saturate(0.85)'
-          : 'drop-shadow(0 1.5px 2px rgba(0,0,0,.55))',
-        opacity: veiled ? 0.8 : 1,
-      }}
-    >
-      <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="block">
+  const content = (
+    <>
+      <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="absolute inset-0 block">
         <path
           d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
           fill={color}
@@ -69,6 +58,35 @@ export function PinShape({
         style={{ top: (h * 13) / 36, width: g, height: g, color: glyphColor(color) }}
       >
         <PinGlyph name={icon || 'pin'} className="h-full w-full" />
+      </div>
+    </>
+  )
+
+  if (!veiled) {
+    return (
+      <div className="relative" style={{ width: w, height: h, filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,.55))' }}>
+        {content}
+      </div>
+    )
+  }
+
+  // surfaced over fog: head stays crisp, the tip sinks into the cloud — a sharp
+  // top layer and a blurred bottom layer that fades out toward the point
+  const topMask = 'linear-gradient(to bottom, #000 0%, #000 40%, transparent 74%)'
+  const bottomMask = 'linear-gradient(to bottom, transparent 34%, #000 64%, rgba(0,0,0,.3) 100%)'
+  return (
+    <div className="relative" style={{ width: w, height: h }}>
+      <div
+        className="absolute inset-0"
+        style={{ filter: 'blur(1.3px) saturate(0.85)', opacity: 0.85, maskImage: bottomMask, WebkitMaskImage: bottomMask }}
+      >
+        {content}
+      </div>
+      <div
+        className="absolute inset-0"
+        style={{ filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,.45))', maskImage: topMask, WebkitMaskImage: topMask }}
+      >
+        {content}
       </div>
     </div>
   )
