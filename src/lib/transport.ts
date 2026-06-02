@@ -23,6 +23,8 @@ export type PublicPin = {
   icon: string
   borderColor?: string
   labelBg?: string
+  aboveFog?: boolean
+  labelAboveFog?: boolean
   title: string
   playerNote: string
 }
@@ -37,6 +39,8 @@ export const toPublicPins = (pins: Pin[]): PublicPin[] =>
     icon: p.icon || 'pin',
     borderColor: p.borderColor,
     labelBg: p.labelBg,
+    aboveFog: p.aboveFog,
+    labelAboveFog: p.labelAboveFog,
     title,
     playerNote,
   }))

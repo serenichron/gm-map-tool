@@ -27,6 +27,8 @@ export type Pin = {
   gmNote: string
   borderColor?: string // pin outline; defaults to a dark grey
   labelBg?: string // title pill background; defaults to a dark wash
+  aboveFog?: boolean // show on top of the fog (default: hidden under it)
+  labelAboveFog?: boolean // when above the fog, also show its title label
   domain?: CrystalDomain // legacy pins (pre-colour); used as a fallback
 }
 

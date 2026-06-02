@@ -309,6 +309,38 @@ export function PinEditor({
           })}
         </div>
 
+        <div>
+          <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+            Fog
+          </span>
+          <label className="flex items-center gap-2.5 py-1 font-ui text-[13px] text-bone">
+            <input
+              type="checkbox"
+              checked={!!pin.aboveFog}
+              onChange={(e) => onPatch({ aboveFog: e.target.checked })}
+              className="h-4 w-4 accent-ochre"
+            />
+            Show above the fog
+          </label>
+          <label
+            className={`flex items-center gap-2.5 py-1 font-ui text-[13px] text-bone ${
+              pin.aboveFog ? '' : 'pointer-events-none opacity-40'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={!!pin.labelAboveFog}
+              disabled={!pin.aboveFog}
+              onChange={(e) => onPatch({ labelAboveFog: e.target.checked })}
+              className="h-4 w-4 accent-ochre"
+            />
+            Show its label over the fog
+          </label>
+          <span className="mt-1 block font-ui text-[10.5px] text-bone-dim">
+            Off by default a pin hides under the fog and appears as the map is revealed.
+          </span>
+        </div>
+
         <label className="block">
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
             Player note

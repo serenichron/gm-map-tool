@@ -31,11 +31,13 @@ export function PinShape({
   icon,
   size = 26,
   stroke = DEFAULT_PIN_BORDER,
+  veiled = false,
 }: {
   color: string
   icon: string
   size?: number
   stroke?: string
+  veiled?: boolean
 }) {
   const w = size
   const h = (size * 33) / 26
@@ -43,7 +45,15 @@ export function PinShape({
   return (
     <div
       className="relative"
-      style={{ width: w, height: h, filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,.55))' }}
+      style={{
+        width: w,
+        height: h,
+        // when surfaced over fog, sit between the layers: softened and dimmed
+        filter: veiled
+          ? 'drop-shadow(0 1.5px 2px rgba(0,0,0,.5)) blur(0.7px) saturate(0.85)'
+          : 'drop-shadow(0 1.5px 2px rgba(0,0,0,.55))',
+        opacity: veiled ? 0.8 : 1,
+      }}
     >
       <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="block">
         <path
@@ -74,6 +84,8 @@ export function PinMarker({
   pin,
   interactive,
   labelSide = 'right',
+  veiled = false,
+  showLabel = true,
   screenToImage,
   onMove,
   onOpen,
@@ -81,6 +93,8 @@ export function PinMarker({
   pin: Pin
   interactive: boolean
   labelSide?: LabelSide
+  veiled?: boolean
+  showLabel?: boolean
   screenToImage: (clientX: number, clientY: number) => { x: number; y: number }
   onMove: (id: string, x: number, y: number) => void
   onOpen: (id: string) => void
@@ -135,8 +149,9 @@ export function PinMarker({
           cursor: interactive ? 'grab' : 'pointer',
         }}
       >
-        <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} />
+        <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} veiled={veiled} />
         {pin.title &&
+          showLabel &&
           (() => {
             const pill = (
               <div

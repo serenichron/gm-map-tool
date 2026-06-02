@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FogController, type FogOp } from '../lib/fog.ts'
 import { buildFrost } from '../lib/frost.ts'
 import { FogHaze } from '../lib/fogAnim.ts'
@@ -72,6 +72,8 @@ export function FogView({
   // true once fog has actually been drawn this session; drives a dust curtain
   // that hides the bare map whenever fog isn't painted (initial load + resume)
   const [painted, setPainted] = useState(false)
+  // bumped whenever the fog is (re)drawn, so pin coverage is re-sampled
+  const [coverTick, setCoverTick] = useState(0)
   const readyRef = useRef(false)
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
@@ -147,6 +149,7 @@ export function FogView({
     }
 
     setPainted(true)
+    setCoverTick((t) => t + 1)
     if (!readyRef.current) {
       readyRef.current = true
       onReadyRef.current?.()
@@ -204,6 +207,30 @@ export function FogView({
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
   const labelSides = computeLabelSides(pins)
 
+  // which pins sit under opaque fog right now (sampled from the rendered mask),
+  // so under-fog pins hide there and over-fog pins show veiled
+  const covered = useMemo(() => {
+    const off = offscreenFog.current
+    const m: Record<string, boolean> = {}
+    const ctx = off && off.width ? off.getContext('2d', { willReadFrequently: true }) : null
+    for (const p of pins) {
+      if (!ctx) {
+        m[p.id] = false
+        continue
+      }
+      const px = Math.max(0, Math.min(off!.width - 1, Math.round(p.x)))
+      const py = Math.max(0, Math.min(off!.height - 1, Math.round(p.y)))
+      try {
+        m[p.id] = ctx.getImageData(px, py, 1, 1).data[3] > 140
+      } catch {
+        m[p.id] = false
+      }
+    }
+    return m
+    // coverTick changes each time the fog is redrawn → re-sample
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pins, coverTick])
+
   // a quick tap-and-release outside the open popover (and not on a pin) closes
   // it — but a press that drags (panning) or is held (tap-and-hold) leaves it open
   useEffect(() => {
@@ -259,17 +286,27 @@ export function FogView({
         style={{ width, height, background: '#16110b', opacity: painted ? 0 : 1 }}
       />
       <div className="pointer-events-none absolute left-0 top-0" style={{ width, height }}>
-        {pins.map((p) => (
-          <PinMarker
-            key={p.id}
-            pin={{ ...p, gmNote: '' }}
-            interactive={false}
-            labelSide={labelSides[p.id]}
-            screenToImage={() => ({ x: 0, y: 0 })}
-            onMove={() => {}}
-            onOpen={setSelectedId}
-          />
-        ))}
+        {pins.map((p) => {
+          const cov = covered[p.id]
+          // under-fog pins (the default) only show where the fog is cleared
+          if (!p.aboveFog && cov) return null
+          // over-fog pins look veiled while they're over fogged ground
+          const veiled = !!p.aboveFog && cov
+          const showLabel = veiled ? !!p.labelAboveFog : true
+          return (
+            <PinMarker
+              key={p.id}
+              pin={{ ...p, gmNote: '' }}
+              interactive={false}
+              labelSide={labelSides[p.id]}
+              veiled={veiled}
+              showLabel={showLabel}
+              screenToImage={() => ({ x: 0, y: 0 })}
+              onMove={() => {}}
+              onOpen={setSelectedId}
+            />
+          )
+        })}
         {selectedPin && <PinPopover pin={selectedPin} onClose={() => setSelectedId(null)} />}
       </div>
       <MapFrame width={width} height={height} />
