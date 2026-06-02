@@ -13,7 +13,7 @@ import type { PublicPin } from '../lib/transport.ts'
 import { useViewport } from '../hooks/useViewport.ts'
 import { FogController, type FogTool } from '../lib/fog.ts'
 import { pixelToHex } from '../lib/hex.ts'
-import { newPinId, DEFAULT_PIN_COLOR, type Pin } from '../lib/pins.ts'
+import { newPinId, DEFAULT_PIN_COLOR, computeLabelSides, type Pin } from '../lib/pins.ts'
 import { idbGet, idbSet, idbDel, imgKey, workKey, type WorkingState } from '../lib/storage.ts'
 import {
   createLocalBackend,
@@ -1147,6 +1147,8 @@ function GMWorkspace() {
     </>
   ) : undefined
 
+  const labelSides = computeLabelSides(pins)
+
   return (
     <AppShell
       role="gm"
@@ -1205,6 +1207,7 @@ function GMWorkspace() {
                       key={p.id}
                       pin={p}
                       interactive={tool === 'pin'}
+                      labelSide={labelSides[p.id]}
                       screenToImage={screenToImage}
                       onMove={movePin}
                       onOpen={setSelectedId}

@@ -1,6 +1,11 @@
 import { useRef } from 'react'
-import { getPinColor, type Pin } from '../lib/pins.ts'
+import { getPinColor, type LabelSide, type Pin } from '../lib/pins.ts'
 import { PinGlyph } from './PinGlyph.tsx'
+
+const LABEL_BG = 'rgba(12,8,4,.8)'
+// fade titles in only once zoomed in a bit (--inv = 1/scale): hidden when zoomed
+// out (crowded), visible up close. Keeps the map readable.
+const LABEL_FADE = 'clamp(0, (1.65 - var(--inv, 1)) * 1.8, 1)'
 
 const DRAG_THRESHOLD = 4 // px before a press becomes a drag rather than a tap
 
@@ -27,12 +32,14 @@ function glyphColor(hex: string): string {
 export function PinMarker({
   pin,
   interactive,
+  labelSide = 'right',
   screenToImage,
   onMove,
   onOpen,
 }: {
   pin: Pin
   interactive: boolean
+  labelSide?: LabelSide
   screenToImage: (clientX: number, clientY: number) => { x: number; y: number }
   onMove: (id: string, x: number, y: number) => void
   onOpen: (id: string) => void
@@ -96,16 +103,30 @@ export function PinMarker({
             <PinGlyph name={pin.icon || 'pin'} className="h-[13px] w-[13px]" />
           </div>
         </div>
-        {pin.title && (
-          <div
-            className="pointer-events-none absolute left-1/2 top-[33px] max-w-[116px] -translate-x-1/2 truncate rounded-[5px] border border-line/70 bg-[rgba(12,8,4,.74)] px-1.5 py-px text-center font-ui text-[10px] font-semibold text-bone shadow-[0_1px_4px_rgba(0,0,0,.5)]"
-            // fade titles in only once zoomed in a bit (--inv = 1/scale): hidden
-            // when zoomed out (crowded), visible up close. Keeps the map readable.
-            style={{ opacity: 'clamp(0, (1.65 - var(--inv, 1)) * 1.8, 1)', transition: 'opacity .2s' }}
-          >
-            {pin.title}
-          </div>
-        )}
+        {pin.title &&
+          (labelSide === 'left' ? (
+            // label to the LEFT of the pin head, arrow pointing right at the pin
+            <div
+              className="pointer-events-none absolute right-[27px] top-[13px] flex -translate-y-1/2 items-center"
+              style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
+            >
+              <div className="max-w-[116px] min-w-0 truncate rounded-[5px] border border-line/70 px-1.5 py-px font-ui text-[10px] font-semibold text-bone shadow-[0_1px_4px_rgba(0,0,0,.5)]" style={{ background: LABEL_BG }}>
+                {pin.title}
+              </div>
+              <span className="h-0 w-0 border-y-[5px] border-l-[6px] border-y-transparent" style={{ borderLeftColor: LABEL_BG }} />
+            </div>
+          ) : (
+            // label to the RIGHT of the pin head, arrow pointing left at the pin
+            <div
+              className="pointer-events-none absolute left-[27px] top-[13px] flex -translate-y-1/2 items-center"
+              style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
+            >
+              <span className="h-0 w-0 border-y-[5px] border-r-[6px] border-y-transparent" style={{ borderRightColor: LABEL_BG }} />
+              <div className="max-w-[116px] min-w-0 truncate rounded-[5px] border border-line/70 px-1.5 py-px font-ui text-[10px] font-semibold text-bone shadow-[0_1px_4px_rgba(0,0,0,.5)]" style={{ background: LABEL_BG }}>
+                {pin.title}
+              </div>
+            </div>
+          ))}
       </div>
     </div>
   )

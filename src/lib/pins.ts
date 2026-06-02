@@ -50,3 +50,23 @@ export const domainColor = (d: CrystalDomain): string =>
 
 export const newPinId = (): string =>
   'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+
+export type LabelSide = 'left' | 'right'
+
+/**
+ * Decide which side each pin's title sits on. Default right; flip to the left
+ * when another pin is close on the right (same rough height), so the label
+ * doesn't cover that neighbour. Thresholds are in image pixels.
+ */
+export function computeLabelSides(pins: { id: string; x: number; y: number }[]): Record<string, LabelSide> {
+  const NEAR_X = 170 // how far right a neighbour matters (≈ a label's reach)
+  const NEAR_Y = 52 // vertical band where a neighbour would clash with the label
+  const sides: Record<string, LabelSide> = {}
+  for (const p of pins) {
+    const blockedRight = pins.some(
+      (o) => o.id !== p.id && o.x > p.x && o.x - p.x < NEAR_X && Math.abs(o.y - p.y) < NEAR_Y,
+    )
+    sides[p.id] = blockedRight ? 'left' : 'right'
+  }
+  return sides
+}
