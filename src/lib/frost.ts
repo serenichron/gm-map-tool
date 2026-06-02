@@ -23,8 +23,8 @@ export function buildFrost(
   const im = mapImg as HTMLImageElement
   const sW = im.naturalWidth || w
   const sH = im.naturalHeight || h
-  const e = 48
-  ctx.filter = 'blur(18px) brightness(0.4) saturate(0.8)'
+  const e = 60
+  ctx.filter = 'blur(28px) brightness(0.26) saturate(0.75)'
   ctx.drawImage(im, 0, 0, w, h)
   ctx.drawImage(im, 0, 0, 1, sH, -e, 0, e, h) // clamp left
   ctx.drawImage(im, sW - 1, 0, 1, sH, w, 0, e, h) // clamp right

@@ -149,9 +149,9 @@ export class FogHaze {
     ax.globalAlpha = 1
     ax.clearRect(0, 0, this.w, this.h)
 
-    // light constant haze only — density now comes from the clouds, so the
-    // texture stays visible instead of being washed flat
-    ax.globalAlpha = 0.14
+    // a constant dust haze so the hidden ground reads as fogged, not merely dim;
+    // the drifting clouds add texture on top
+    ax.globalAlpha = 0.24
     ax.fillStyle = `rgba(${DUST},1)`
     ax.fillRect(0, 0, this.w, this.h)
 
