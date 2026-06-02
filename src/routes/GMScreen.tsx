@@ -526,6 +526,29 @@ function GMWorkspace() {
     fit()
   }, [map, fit])
 
+  // mobile browsers wipe the canvas while backgrounded; on return, repaint the
+  // GM fog (deferred a frame so the restored canvas is live again) so the map
+  // doesn't come back bare
+  useEffect(() => {
+    const redraw = () => fogRef.current.render()
+    const onVisible = () => {
+      if (document.hidden) return
+      redraw()
+      requestAnimationFrame(redraw)
+    }
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) onVisible()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('pageshow', onPageShow)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('pageshow', onPageShow)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [])
+
   // keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
