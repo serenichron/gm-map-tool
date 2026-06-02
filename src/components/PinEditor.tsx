@@ -134,7 +134,7 @@ export function PinEditor({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-[18px] py-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-[18px] py-4">
         <label className="block">
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
             Title
