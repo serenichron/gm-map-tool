@@ -197,8 +197,12 @@ export function PinMarker({
           // vector stays crisp at any zoom instead of upscaling the stage texture
           willChange: 'transform',
           cursor: interactive ? 'grab' : 'pointer',
+          touchAction: 'none',
         }}
       >
+        {/* generous transparent hit area so the pin is easy to grab and drag,
+            especially on touch (events bubble to this [data-pin] handler) */}
+        <span className="absolute" style={{ inset: -13 }} aria-hidden />
         <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} veiled={veiled} gmOnly={!!pin.gmOnly} />
         {/* GM-only hint: a pin set to show over the fog (never shown to players).
             No badge = the default (hidden under the fog until revealed). */}
