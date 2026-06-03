@@ -105,11 +105,12 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     fc.attach(fog, w, h)
     fc.setOps(fogOps)
 
-    // soften the mask (feather the crisp→veiled transition), clamped to margins
+    // lightly soften the mask just enough to avoid a hard pixel edge — the brush
+    // already feathers, so keep this small or the reveal bleeds a wide halo
     const mask = document.createElement('canvas')
     mask.width = w
     mask.height = h
-    blurClamped(mask.getContext('2d')!, fog, w, h, w, h, Math.max(14, Math.round(min * 0.025)))
+    blurClamped(mask.getContext('2d')!, fog, w, h, w, h, Math.max(4, Math.round(min * 0.006)))
 
     // a heavily blurred + dimmed copy of the map, clamped so it covers the
     // margins, kept only where the fog hides it
