@@ -138,21 +138,6 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     hctx.globalCompositeOperation = 'source-atop'
     hctx.fillStyle = 'rgba(38,32,24,0.45)'
     hctx.fillRect(0, 0, w, h)
-    // a thick soft black frame baked into the fog: darken the margins toward
-    // black (where surviving features cluster) fading to the central hint
-    const T = Math.round(min * 0.16)
-    const dark = (a: number) => `rgba(6,5,3,${a})`
-    const frame = (x0: number, y0: number, x1: number, y1: number, rx: number, ry: number, rw: number, rh: number) => {
-      const g = hctx.createLinearGradient(x0, y0, x1, y1)
-      g.addColorStop(0, dark(0.96))
-      g.addColorStop(1, dark(0))
-      hctx.fillStyle = g
-      hctx.fillRect(rx, ry, rw, rh)
-    }
-    frame(0, 0, 0, T, 0, 0, w, T) // top
-    frame(0, h, 0, h - T, 0, h - T, w, T) // bottom
-    frame(0, 0, T, 0, 0, 0, T, h) // left
-    frame(w, 0, w - T, 0, w - T, 0, T, h) // right
     hctx.globalCompositeOperation = 'destination-in'
     hctx.drawImage(mask, 0, 0, w, h)
     hctx.globalCompositeOperation = 'source-over'
