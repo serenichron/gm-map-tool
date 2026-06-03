@@ -119,6 +119,24 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     const hctx = hidden.getContext('2d')!
     // dim hard here since the player no longer re-applies frost (only haze)
     blurClamped(hctx, img, iw, ih, w, h, Math.round(min * 0.08), 'brightness(0.34) saturate(0.8)')
+    // kill contrast so surviving high-contrast features (towns, peaks) stop
+    // reading as shapes — a flat warm dust wash over the blurred veil
+    hctx.globalCompositeOperation = 'source-atop'
+    hctx.fillStyle = 'rgba(38,32,24,0.5)'
+    hctx.fillRect(0, 0, w, h)
+    // vignette: drown features toward the margins, keep a soft central hint
+    const vg = hctx.createRadialGradient(
+      w / 2,
+      h / 2,
+      Math.min(w, h) * 0.18,
+      w / 2,
+      h / 2,
+      Math.max(w, h) * 0.62,
+    )
+    vg.addColorStop(0, 'rgba(8,6,3,0)')
+    vg.addColorStop(1, 'rgba(8,6,3,0.7)')
+    hctx.fillStyle = vg
+    hctx.fillRect(0, 0, w, h)
     hctx.globalCompositeOperation = 'destination-in'
     hctx.drawImage(mask, 0, 0, w, h)
     hctx.globalCompositeOperation = 'source-over'
