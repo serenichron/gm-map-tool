@@ -122,12 +122,6 @@ const EyeIcon = (
     <circle cx="8" cy="8" r="2" fill="currentColor" stroke="none" />
   </svg>
 )
-const TagIcon = (
-  <svg viewBox="0 0 16 16" className="h-[8px] w-[8px]" fill="none" stroke="currentColor" strokeWidth={1.8}>
-    <rect x="2" y="5" width="12" height="6" rx="1.6" />
-  </svg>
-)
-
 /**
  * A teardrop map pin (round top, pointed bottom) whose tip marks the spot.
  * Counter-scaled (via the stage's --inv var) to stay a constant on-screen size.
@@ -209,34 +203,25 @@ export function PinMarker({
         {/* GM-only hint: a pin set to show over the fog (never shown to players).
             No badge = the default (hidden under the fog until revealed). */}
         {gmHint && !pin.gmOnly && pin.aboveFog && (
-          <div className="pointer-events-none absolute left-[-4px] top-[15px] flex items-center gap-0.5">
-            <span
-              className="flex h-[13px] w-[13px] items-center justify-center rounded-[3px] border"
-              title="Shown over the fog to players"
-              style={{ background: '#2c625e', borderColor: '#3e8e89', color: '#ece0cb' }}
-            >
-              {EyeIcon}
-            </span>
-            {pin.labelAboveFog && (
-              <span
-                className="flex h-[13px] w-[13px] items-center justify-center rounded-[3px] border"
-                title="Its label is shown over the fog"
-                style={{ background: '#2c625e', borderColor: '#3e8e89', color: '#ece0cb' }}
-              >
-                {TagIcon}
-              </span>
-            )}
-          </div>
+          <span
+            className="pointer-events-none absolute left-[-4px] top-[15px] flex h-[13px] w-[13px] items-center justify-center rounded-[3px] border"
+            title="Shown over the fog to players"
+            style={{ background: '#2c625e', borderColor: '#3e8e89', color: '#ece0cb' }}
+          >
+            {EyeIcon}
+          </span>
         )}
         {pin.title &&
           showLabel &&
           (() => {
+            const labelOverFog = gmHint && !pin.gmOnly && pin.aboveFog && pin.labelAboveFog
             const pill = (
               <div
-                className="max-w-[116px] min-w-0 truncate rounded-[5px] border px-1.5 py-px font-ui text-[10px] font-semibold shadow-[0_1px_4px_rgba(0,0,0,.5)]"
+                className="flex max-w-[116px] items-center gap-1 rounded-[5px] border px-1.5 py-px font-ui text-[10px] font-semibold shadow-[0_1px_4px_rgba(0,0,0,.5)]"
                 style={{ background: labelBg, color: labelFg, borderColor: labelBorder }}
               >
-                {pin.title}
+                {labelOverFog && <span className="shrink-0">{EyeIcon}</span>}
+                <span className="min-w-0 truncate">{pin.title}</span>
               </div>
             )
             return labelSide === 'left' ? (
