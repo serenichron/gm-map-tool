@@ -110,7 +110,7 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     const mask = document.createElement('canvas')
     mask.width = w
     mask.height = h
-    blurClamped(mask.getContext('2d')!, fog, w, h, w, h, Math.max(4, Math.round(min * 0.006)))
+    blurClamped(mask.getContext('2d')!, fog, w, h, w, h, Math.max(8, Math.round(min * 0.014)))
 
     // a heavily blurred + dimmed copy of the map, clamped so it covers the
     // margins, kept only where the fog hides it
