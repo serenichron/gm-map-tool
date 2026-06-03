@@ -23,12 +23,12 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Blur `src` into `dst` (sized w×h) so the result stays fully opaque to the
- * margins. A plain blur fades to transparent over the blur radius at the edges
- * (letting the crisp layer underneath show through); to avoid that we first
- * paint the image into an oversized canvas with its edge pixels stretched into
- * the margins, blur that, then crop the inner region — which is therefore always
- * surrounded by opaque content and never fades.
+ * Blur `src` into `dst` (sized w×h) so the result stays fully opaque AND fully
+ * diffused to the margins. A plain blur fades and under-averages at the edges
+ * (where pixels have fewer neighbours), letting crisp detail survive. To avoid
+ * that we paint the image into an oversized canvas and *mirror* its real terrain
+ * outward into the margins, blur that, then crop the inner region — so every
+ * edge pixel has genuine content on all sides to average against.
  */
 function blurClamped(
   dst: CanvasRenderingContext2D,
@@ -43,21 +43,35 @@ function blurClamped(
   const p = Math.ceil(blurPx) + 8 // margin ≥ blur radius
   const bw = w + 2 * p
   const bh = h + 2 * p
+  const sw2 = Math.min(sw, Math.ceil((p * sw) / w)) // source px that map to a p-wide margin
+  const sh2 = Math.min(sh, Math.ceil((p * sh) / h))
 
-  // 1. image into the inner region, with edges/corners stretched into the margins
+  // 1. image into the inner region, with the real terrain mirrored into the margins
   const ext = document.createElement('canvas')
   ext.width = bw
   ext.height = bh
   const e = ext.getContext('2d')!
   e.drawImage(src, 0, 0, sw, sh, p, p, w, h)
-  e.drawImage(src, 0, 0, 1, sh, 0, p, p, h) // left
-  e.drawImage(src, sw - 1, 0, 1, sh, p + w, p, p, h) // right
-  e.drawImage(src, 0, 0, sw, 1, p, 0, w, p) // top
-  e.drawImage(src, 0, sh - 1, sw, 1, p, p + h, w, p) // bottom
-  e.drawImage(src, 0, 0, 1, 1, 0, 0, p, p) // TL
-  e.drawImage(src, sw - 1, 0, 1, 1, p + w, 0, p, p) // TR
-  e.drawImage(src, 0, sh - 1, 1, 1, 0, p + h, p, p) // BL
-  e.drawImage(src, sw - 1, sh - 1, 1, 1, p + w, p + h, p, p) // BR
+  // left + right (reflect across X)
+  e.save()
+  e.scale(-1, 1)
+  e.drawImage(src, 0, 0, sw2, sh, -p, p, p, h)
+  e.drawImage(src, sw - sw2, 0, sw2, sh, -bw, p, p, h)
+  e.restore()
+  // top + bottom (reflect across Y)
+  e.save()
+  e.scale(1, -1)
+  e.drawImage(src, 0, 0, sw, sh2, p, -p, w, p)
+  e.drawImage(src, 0, sh - sh2, sw, sh2, p, -bh, w, p)
+  e.restore()
+  // corners (reflect across both)
+  e.save()
+  e.scale(-1, -1)
+  e.drawImage(src, 0, 0, sw2, sh2, -p, -p, p, p)
+  e.drawImage(src, sw - sw2, 0, sw2, sh2, -bw, -p, p, p)
+  e.drawImage(src, 0, sh - sh2, sw2, sh2, -p, -bh, p, p)
+  e.drawImage(src, sw - sw2, sh - sh2, sw2, sh2, -bw, -bh, p, p)
+  e.restore()
 
   // 2. blur the oversized canvas
   const blurred = document.createElement('canvas')
