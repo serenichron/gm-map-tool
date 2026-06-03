@@ -95,7 +95,7 @@ export class FogController {
   private scratch: HTMLCanvasElement = document.createElement('canvas') // semi masking buffer
   private current: FogStroke | null = null
   private currentHex: FogHexes | null = null
-  private shredCache = new Map<number, HTMLCanvasElement>()
+  private shredCache = new Map<string, HTMLCanvasElement>()
 
   attach(canvas: HTMLCanvasElement, w: number, h: number) {
     this.canvas = canvas
@@ -325,7 +325,14 @@ export class FogController {
   private applySemi(stroke: FogStroke) {
     const ctx = this.ctx!
     const r = stroke.radius
-    const tile = this.getShred(stroke.seed)
+    // lean the tears along the drag direction (deterministic: derived from the
+    // stroke points every client receives). Fall back to the default lean for taps.
+    const first = stroke.points[0]
+    const last = stroke.points[stroke.points.length - 1]
+    const dx = last.x - first.x
+    const dy = last.y - first.y
+    const angle = Math.hypot(dx, dy) > r * 0.5 ? Math.atan2(dy, dx) : -0.35
+    const tile = this.getShred(stroke.seed, angle)
 
     // stroke bounding box, clamped to the canvas
     let minX = Infinity
@@ -386,8 +393,12 @@ export class FogController {
     ctx.restore()
   }
 
-  private getShred(seed: number): HTMLCanvasElement {
-    const cached = this.shredCache.get(seed)
+  private getShred(seed: number, angle = -0.35): HTMLCanvasElement {
+    // quantise the angle so the cache key matches what we draw, and stays
+    // byte-identical across clients
+    const baseAngle = Math.round(angle * 50) / 50
+    const key = `${seed}:${Math.round(baseAngle * 50)}`
+    const cached = this.shredCache.get(key)
     if (cached) return cached
     const rng = mulberry32(seed)
     const tile = document.createElement('canvas')
@@ -395,13 +406,12 @@ export class FogController {
     tile.height = SHRED_TILE
     const c = tile.getContext('2d')!
     c.lineCap = 'round'
-    const baseAngle = -0.35 // overall lean of the tears
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 48; i++) {
       const x = rng() * SHRED_TILE
       const y = rng() * SHRED_TILE
-      const ang = baseAngle + (rng() - 0.5) * 0.5
-      const len = 24 + rng() * 60
-      const thick = 3 + rng() * 6
+      const ang = baseAngle + (rng() - 0.5) * 0.4
+      const len = 18 + rng() * 42
+      const thick = 1.2 + rng() * 2.0
       const exx = x + Math.cos(ang) * len
       const eyy = y + Math.sin(ang) * len
       const mkx = (x + exx) / 2 + (rng() - 0.5) * 8
@@ -425,7 +435,7 @@ export class FogController {
         }
       }
     }
-    this.shredCache.set(seed, tile)
+    this.shredCache.set(key, tile)
     return tile
   }
 }
