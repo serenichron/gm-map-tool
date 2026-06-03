@@ -77,6 +77,9 @@ export interface Backend {
   publish(input: PublishInput): Promise<void>
   requestLatest(): Promise<Snapshot | undefined>
   subscribe(onUpdate: (s: Snapshot) => void): () => void
+  /** Delete every stored image for this room except the given paths to keep —
+   *  clears orphaned files so nothing piles up. No-op for the local backend. */
+  pruneStorage(keep: string[]): Promise<void>
 }
 
 // ── local backend ─────────────────────────────────────────────────────────
@@ -117,6 +120,9 @@ export function createLocalBackend(): Backend {
       }
       bc?.addEventListener('message', handler)
       return () => bc?.removeEventListener('message', handler)
+    },
+    async pruneStorage() {
+      /* single in-place blob; nothing to prune */
     },
   }
 }
@@ -194,6 +200,19 @@ export function createSupabaseBackend(roomId: string): Backend {
         .eq('room_id', roomId)
         .maybeSingle()
       return data ? rowToSnapshot(data) : undefined
+    },
+
+    async pruneStorage(keep) {
+      // never mass-delete on a bad/empty keep set (would wipe the live image)
+      const keepSet = new Set(keep.filter(Boolean))
+      if (keepSet.size === 0) return
+      const { data, error } = await sb.storage.from(BUCKET).list(roomId, { limit: 1000 })
+      if (error || !data) return
+      const remove = data
+        .filter((o) => o.name)
+        .map((o) => `${roomId}/${o.name}`)
+        .filter((path) => !keepSet.has(path))
+      if (remove.length) await sb.storage.from(BUCKET).remove(remove)
     },
 
     subscribe(onUpdate) {

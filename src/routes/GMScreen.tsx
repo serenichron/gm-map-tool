@@ -701,6 +701,12 @@ function GMWorkspace() {
       },
       })
       setDirty(false)
+      // clear orphaned images: keep only the just-published veil + working image
+      try {
+        await backend.pruneStorage([imageRef, workImagePathRef.current].filter((p): p is string => !!p))
+      } catch (e) {
+        console.warn('storage prune skipped:', e)
+      }
     } catch (e) {
       console.error('publish failed:', e)
     } finally {
