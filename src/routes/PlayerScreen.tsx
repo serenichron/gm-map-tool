@@ -205,6 +205,7 @@ export function PlayerScreen() {
               fogOps={pub.fogOps}
               grid={pub.grid}
               pins={pins}
+              baked
               onReady={() => setFogReady(true)}
               gridOpacity={useGmGrid ? undefined : playerGridOpacity}
             />

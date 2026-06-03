@@ -103,7 +103,8 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     hidden.width = w
     hidden.height = h
     const hctx = hidden.getContext('2d')!
-    blurClamped(hctx, img, iw, ih, w, h, Math.round(min * 0.08), 'brightness(0.6) saturate(0.85)')
+    // dim hard here since the player no longer re-applies frost (only haze)
+    blurClamped(hctx, img, iw, ih, w, h, Math.round(min * 0.08), 'brightness(0.34) saturate(0.8)')
     hctx.globalCompositeOperation = 'destination-in'
     hctx.drawImage(mask, 0, 0, w, h)
     hctx.globalCompositeOperation = 'source-over'

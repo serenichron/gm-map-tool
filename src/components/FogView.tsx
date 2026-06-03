@@ -53,6 +53,7 @@ export function FogView({
   pins,
   onReady,
   gridOpacity,
+  baked = false,
 }: {
   width: number
   height: number
@@ -63,6 +64,10 @@ export function FogView({
   onReady?: () => void
   /** override the grid strength (0–100); undefined = use the GM's setting */
   gridOpacity?: number
+  /** the image already has the static veil (frost+shadow) baked in — so only
+   *  add the animated haze here, not the client-side frost (which would double
+   *  up and fade at the edges) */
+  baked?: boolean
 }) {
   // 0–100 line strength → absolute alpha. 25 = the default look (0.45 / 0.05).
   const strength = gridOpacity ?? grid?.opacity ?? 25
@@ -77,6 +82,8 @@ export function FogView({
   const readyRef = useRef(false)
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
+  const bakedRef = useRef(baked)
+  bakedRef.current = baked
 
   const fogRef = useRef<FogController>(null as unknown as FogController)
   if (!fogRef.current) {
@@ -100,9 +107,8 @@ export function FogView({
 
   const renderFog = useCallback(() => {
     const { width: W, height: H, fogOps: ops } = stateRef.current
-    const frost = frostRef.current
     const img = mapImgRef.current
-    if (!frost || !img || !W || !H) return
+    if (!img || !W || !H) return
 
     // only resize when it actually changed — resizing clears the canvas, which
     // would flash on every re-render / live update
@@ -126,21 +132,36 @@ export function FogView({
     buildBlurredMask(cover, off, W, H, blurR, -half, -half)
 
     const depth = depthRef.current
-    if (depth) {
-      fitCanvas(depth)
-      const dc = depth.getContext('2d')!
-      dc.clearRect(0, 0, W, H)
-      dc.filter = `blur(${Math.round(shift * 0.45)}px)`
-      dc.drawImage(cover, shift, shift, W, H)
-      dc.filter = 'none'
-      dc.globalCompositeOperation = 'source-in'
-      dc.fillStyle = 'rgba(6,4,2,0.72)'
-      dc.fillRect(0, 0, W, H)
-      dc.globalCompositeOperation = 'source-over'
+    const frost = frostRef.current
+    if (bakedRef.current) {
+      // the veil (frost + shadow) is baked into the base image; only the
+      // animated haze is layered here, so nothing client-side fades at the edges
+      if (depth) {
+        fitCanvas(depth)
+        depth.getContext('2d')!.clearRect(0, 0, W, H)
+      }
+      if (frost) {
+        fitCanvas(frost)
+        frost.getContext('2d')!.clearRect(0, 0, W, H)
+      }
+    } else {
+      if (depth) {
+        fitCanvas(depth)
+        const dc = depth.getContext('2d')!
+        dc.clearRect(0, 0, W, H)
+        dc.filter = `blur(${Math.round(shift * 0.45)}px)`
+        dc.drawImage(cover, shift, shift, W, H)
+        dc.filter = 'none'
+        dc.globalCompositeOperation = 'source-in'
+        dc.fillStyle = 'rgba(6,4,2,0.72)'
+        dc.fillRect(0, 0, W, H)
+        dc.globalCompositeOperation = 'source-over'
+      }
+      if (frost) {
+        fitCanvas(frost)
+        buildFrost(frost, cover, img, W, H)
+      }
     }
-
-    fitCanvas(frost)
-    buildFrost(frost, cover, img, W, H)
 
     const anim = fogAnimRef.current
     if (anim) {
