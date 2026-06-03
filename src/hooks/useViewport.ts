@@ -115,6 +115,9 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
     // pinch anchors the image point under the gesture's midpoint, so zoom and
     // two-finger pan happen together and stay under the fingers
     let pinch: { imgX: number; imgY: number; startDist: number; startScale: number } | null = null
+    // sticky trackpad detection: once a wheel gesture shows a trackpad tell,
+    // treat the whole gesture as pan until this timestamp (ms)
+    let trackpadUntil = 0
 
     const toImage = (e: PointerEvent) => {
       const rect = vp.getBoundingClientRect()
@@ -216,20 +219,27 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
 
     const wheel = (e: WheelEvent) => {
       e.preventDefault()
+      // ctrl+wheel is the pinch-zoom gesture (trackpad and browser zoom)
       if (e.ctrlKey) {
-        // pinch gesture → zoom
         wheelZoom(e, PINCH_SENSITIVITY)
         return
       }
-      // classic mouse wheel: line/page mode, or chunky vertical-only steps → zoom.
-      // otherwise it's a trackpad two-finger swipe → pan.
-      const isMouseWheel = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50)
-      if (isMouseWheel) {
+      // line/page mode is a classic mouse wheel → zoom to cursor
+      if (e.deltaMode !== 0) {
         wheelZoom(e, WHEEL_SENSITIVITY)
-      } else {
+        return
+      }
+      // pixel mode is a trackpad OR a pixel-reporting mouse wheel. Trackpad tells:
+      // a horizontal component, fractional deltas, or small steps. Once seen, stay
+      // in pan mode briefly so a fast vertical flick mid-gesture doesn't flip to zoom.
+      const looksTrackpad = e.deltaX !== 0 || !Number.isInteger(e.deltaY) || Math.abs(e.deltaY) < 50
+      if (looksTrackpad) trackpadUntil = e.timeStamp + 500
+      if (e.timeStamp < trackpadUntil) {
         view.current.ox -= e.deltaX
         view.current.oy -= e.deltaY
         apply()
+      } else {
+        wheelZoom(e, WHEEL_SENSITIVITY)
       }
     }
     const noCtx = (e: Event) => e.preventDefault()
