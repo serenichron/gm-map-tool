@@ -29,6 +29,7 @@ export type Pin = {
   labelBg?: string // title pill background; defaults to a dark wash
   aboveFog?: boolean // show on top of the fog (default: hidden under it)
   labelAboveFog?: boolean // when above the fog, also show its title label
+  gmOnly?: boolean // private to the GM — never sent to players
   domain?: CrystalDomain // legacy pins (pre-colour); used as a fallback
 }
 

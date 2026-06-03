@@ -29,9 +29,11 @@ export type PublicPin = {
   playerNote: string
 }
 
-/** Drop the GM-only note: it must never reach a player session. */
+/** Drop the GM-only note, and GM-only pins entirely: neither reaches a player. */
 export const toPublicPins = (pins: Pin[]): PublicPin[] =>
-  pins.map(({ id, x, y, title, playerNote, ...p }) => ({
+  pins
+    .filter((p) => !p.gmOnly)
+    .map(({ id, x, y, title, playerNote, ...p }) => ({
     id,
     x,
     y,

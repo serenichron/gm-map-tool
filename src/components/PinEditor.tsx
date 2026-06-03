@@ -95,6 +95,7 @@ export function PinEditor({
               icon={pin.icon || 'pin'}
               size={26}
               stroke={pin.borderColor || DEFAULT_PIN_BORDER}
+              gmOnly={!!pin.gmOnly}
             />
           </div>
           {pin.title && (
@@ -198,6 +199,54 @@ export function PinEditor({
             className="w-full resize-y rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-body text-[14px] leading-relaxed text-bone outline-none focus:border-ochre"
           />
         </label>
+
+        <div className="rounded-[10px] border border-line bg-[#1a130b] p-3">
+          <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+            Visibility
+          </span>
+          <label className="flex items-center gap-2.5 py-1 font-ui text-[13px] text-bone">
+            <input
+              type="checkbox"
+              checked={!!pin.gmOnly}
+              onChange={(e) => onPatch({ gmOnly: e.target.checked })}
+              className="h-4 w-4 accent-rust"
+            />
+            Only I can see this pin
+          </label>
+          <span className="mb-1 block font-ui text-[10.5px] text-bone-dim">
+            Never sent to players. Shown to you with a dashed outline and a ! mark.
+          </span>
+
+          <div className={pin.gmOnly ? 'pointer-events-none opacity-40' : ''}>
+            <label className="flex items-center gap-2.5 py-1 font-ui text-[13px] text-bone">
+              <input
+                type="checkbox"
+                checked={!!pin.aboveFog}
+                disabled={!!pin.gmOnly}
+                onChange={(e) => onPatch({ aboveFog: e.target.checked })}
+                className="h-4 w-4 accent-ochre"
+              />
+              Show above the fog
+            </label>
+            <label
+              className={`flex items-center gap-2.5 py-1 font-ui text-[13px] text-bone ${
+                pin.aboveFog ? '' : 'pointer-events-none opacity-40'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={!!pin.labelAboveFog}
+                disabled={!pin.aboveFog || !!pin.gmOnly}
+                onChange={(e) => onPatch({ labelAboveFog: e.target.checked })}
+                className="h-4 w-4 accent-ochre"
+              />
+              Show its label over the fog
+            </label>
+            <span className="mt-1 block font-ui text-[10.5px] text-bone-dim">
+              Off by default a pin hides under the fog and appears as the map is revealed.
+            </span>
+          </div>
+        </div>
 
         <div>
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
@@ -359,38 +408,6 @@ export function PinEditor({
               </div>
             )
           })}
-        </div>
-
-        <div>
-          <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
-            Fog
-          </span>
-          <label className="flex items-center gap-2.5 py-1 font-ui text-[13px] text-bone">
-            <input
-              type="checkbox"
-              checked={!!pin.aboveFog}
-              onChange={(e) => onPatch({ aboveFog: e.target.checked })}
-              className="h-4 w-4 accent-ochre"
-            />
-            Show above the fog
-          </label>
-          <label
-            className={`flex items-center gap-2.5 py-1 font-ui text-[13px] text-bone ${
-              pin.aboveFog ? '' : 'pointer-events-none opacity-40'
-            }`}
-          >
-            <input
-              type="checkbox"
-              checked={!!pin.labelAboveFog}
-              disabled={!pin.aboveFog}
-              onChange={(e) => onPatch({ labelAboveFog: e.target.checked })}
-              className="h-4 w-4 accent-ochre"
-            />
-            Show its label over the fog
-          </label>
-          <span className="mt-1 block font-ui text-[10.5px] text-bone-dim">
-            Off by default a pin hides under the fog and appears as the map is revealed.
-          </span>
         </div>
       </div>
 

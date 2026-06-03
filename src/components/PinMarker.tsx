@@ -32,16 +32,19 @@ export function PinShape({
   size = 26,
   stroke = DEFAULT_PIN_BORDER,
   veiled = false,
+  gmOnly = false,
 }: {
   color: string
   icon: string
   size?: number
   stroke?: string
   veiled?: boolean
+  gmOnly?: boolean
 }) {
   const w = size
   const h = (size * 33) / 26
   const g = size * 0.5
+  const bw = size * 0.46 // gm-only "!" badge
   const content = (
     <>
       <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="absolute inset-0 block">
@@ -49,7 +52,8 @@ export function PinShape({
           d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
           fill={color}
           stroke={stroke}
-          strokeWidth={1.6}
+          strokeWidth={gmOnly ? 1.8 : 1.6}
+          strokeDasharray={gmOnly ? '3 2.2' : undefined}
         />
         <circle cx="14" cy="13" r="8.5" fill="rgba(0,0,0,.16)" />
       </svg>
@@ -59,6 +63,25 @@ export function PinShape({
       >
         <PinGlyph name={icon || 'pin'} className="h-full w-full" />
       </div>
+      {gmOnly && (
+        <div
+          className="absolute flex items-center justify-center rounded-full font-ui font-extrabold"
+          style={{
+            top: -bw * 0.18,
+            right: -bw * 0.18,
+            width: bw,
+            height: bw,
+            background: '#a8503a',
+            color: '#fff',
+            fontSize: bw * 0.72,
+            lineHeight: 1,
+            border: '1px solid rgba(0,0,0,.45)',
+            boxShadow: '0 1px 2px rgba(0,0,0,.5)',
+          }}
+        >
+          !
+        </div>
+      )}
     </>
   )
 
@@ -167,7 +190,7 @@ export function PinMarker({
           cursor: interactive ? 'grab' : 'pointer',
         }}
       >
-        <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} veiled={veiled} />
+        <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} veiled={veiled} gmOnly={!!pin.gmOnly} />
         {pin.title &&
           showLabel &&
           (() => {
