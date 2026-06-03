@@ -47,5 +47,8 @@ To restore an old version, load its snapshot as the working state and republish 
 
 ## Action items
 
-- [ ] One-time: prune pre-bake orphan files from Storage (manual/confirmed).
+- [x] Prune orphans on publish — after each publish the room's Storage folder is
+  cleared of everything except the current veiled image + working image
+  (`Backend.pruneStorage`). This also wipes the pre-bake orphans on the next
+  publish, so the bucket self-heals.
 - [ ] Future: implement `published_history` snapshots + retention + restore UI.
