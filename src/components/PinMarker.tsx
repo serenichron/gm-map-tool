@@ -135,6 +135,7 @@ export function PinMarker({
   labelSide = 'right',
   veiled = false,
   showLabel = true,
+  openable = true,
   screenToImage,
   onMove,
   onOpen,
@@ -145,6 +146,9 @@ export function PinMarker({
   veiled?: boolean
   showLabel?: boolean
   gmHint?: boolean
+  /** when false the pin ignores pointer input, so a brush/tile stroke passes
+   *  through instead of opening the editor */
+  openable?: boolean
   screenToImage: (clientX: number, clientY: number) => { x: number; y: number }
   onMove: (id: string, x: number, y: number) => void
   onOpen: (id: string) => void
@@ -188,8 +192,8 @@ export function PinMarker({
     <div className="absolute" style={{ left: pin.x, top: pin.y }}>
       <div
         data-pin
-        onPointerDown={onPointerDown}
-        className="pointer-events-auto"
+        onPointerDown={openable ? onPointerDown : undefined}
+        className={openable ? 'pointer-events-auto' : 'pointer-events-none'}
         style={{
           transform: `translate(-50%, -100%) scale(${PIN_COUNTER_SCALE})`,
           transformOrigin: 'bottom center',

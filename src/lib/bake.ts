@@ -36,7 +36,7 @@ function blurClamped(
   blurPx: number,
   extraFilter = '',
 ) {
-  const e = blurPx * 2 + 8
+  const e = blurPx * 3 + 24
   dst.filter = `blur(${blurPx}px)${extraFilter ? ' ' + extraFilter : ''}`
   dst.drawImage(src, 0, 0, w, h)
   dst.drawImage(src, 0, 0, 1, sh, -e, 0, e, h) // left edge stretched left
@@ -69,7 +69,7 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     const mask = document.createElement('canvas')
     mask.width = w
     mask.height = h
-    blurClamped(mask.getContext('2d')!, fog, w, h, w, h, Math.max(10, Math.round(min * 0.016)))
+    blurClamped(mask.getContext('2d')!, fog, w, h, w, h, Math.max(14, Math.round(min * 0.025)))
 
     // a heavily blurred + dimmed copy of the map, clamped so it covers the
     // margins, kept only where the fog hides it
@@ -77,7 +77,7 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     hidden.width = w
     hidden.height = h
     const hctx = hidden.getContext('2d')!
-    blurClamped(hctx, img, iw, ih, w, h, Math.round(min * 0.04), 'brightness(0.6) saturate(0.85)')
+    blurClamped(hctx, img, iw, ih, w, h, Math.round(min * 0.08), 'brightness(0.6) saturate(0.85)')
     hctx.globalCompositeOperation = 'destination-in'
     hctx.drawImage(mask, 0, 0, w, h)
     hctx.globalCompositeOperation = 'source-over'

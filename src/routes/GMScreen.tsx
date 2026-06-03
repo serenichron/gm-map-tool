@@ -1238,6 +1238,7 @@ function GMWorkspace() {
                       key={p.id}
                       pin={p}
                       interactive={tool === 'pin'}
+                      openable={tool === 'pin' || tool === 'pan'}
                       labelSide={labelSides[p.id]}
                       gmHint
                       screenToImage={screenToImage}
