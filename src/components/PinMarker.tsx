@@ -202,7 +202,7 @@ export function PinMarker({
         <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} veiled={veiled} gmOnly={!!pin.gmOnly} />
         {/* GM-only hint: a pin set to show over the fog (never shown to players).
             No badge = the default (hidden under the fog until revealed). */}
-        {gmHint && !pin.gmOnly && pin.aboveFog && (
+        {gmHint && pin.aboveFog && (
           <span
             className="pointer-events-none absolute left-[-4px] top-[15px] flex h-[13px] w-[13px] items-center justify-center rounded-[3px] border"
             title="Shown over the fog to players"
@@ -214,7 +214,7 @@ export function PinMarker({
         {pin.title &&
           showLabel &&
           (() => {
-            const labelOverFog = gmHint && !pin.gmOnly && pin.aboveFog && pin.labelAboveFog
+            const labelOverFog = gmHint && pin.aboveFog && pin.labelAboveFog
             const pill = (
               <div
                 className="flex max-w-[116px] items-center gap-1 rounded-[5px] border px-1.5 py-px font-ui text-[10px] font-semibold shadow-[0_1px_4px_rgba(0,0,0,.5)]"

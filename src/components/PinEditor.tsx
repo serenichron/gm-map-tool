@@ -217,12 +217,11 @@ export function PinEditor({
             Never sent to players. Shown to you with a dashed outline and a ! mark.
           </span>
 
-          <div className={pin.gmOnly ? 'pointer-events-none opacity-40' : ''}>
+          <div>
             <label className="flex items-center gap-2.5 py-1 font-ui text-[13px] text-bone">
               <input
                 type="checkbox"
                 checked={!!pin.aboveFog}
-                disabled={!!pin.gmOnly}
                 onChange={(e) => onPatch({ aboveFog: e.target.checked })}
                 className="h-4 w-4 accent-ochre"
               />
@@ -236,7 +235,7 @@ export function PinEditor({
               <input
                 type="checkbox"
                 checked={!!pin.labelAboveFog}
-                disabled={!pin.aboveFog || !!pin.gmOnly}
+                disabled={!pin.aboveFog}
                 onChange={(e) => onPatch({ labelAboveFog: e.target.checked })}
                 className="h-4 w-4 accent-ochre"
               />
