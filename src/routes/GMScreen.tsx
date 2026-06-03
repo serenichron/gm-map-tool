@@ -15,6 +15,7 @@ import { FogController, type FogTool } from '../lib/fog.ts'
 import { pixelToHex } from '../lib/hex.ts'
 import { newPinId, DEFAULT_PIN_COLOR, computeLabelSides, type Pin } from '../lib/pins.ts'
 import { swallowNextClick } from '../lib/tap.ts'
+import { bakeVeiledMap } from '../lib/bake.ts'
 import { idbGet, idbSet, idbDel, imgKey, workKey, type WorkingState } from '../lib/storage.ts'
 import {
   createLocalBackend,
@@ -680,16 +681,17 @@ function GMWorkspace() {
     if (!m || !blob || !backend) return
     setPublishing(true)
     try {
-      if (blob !== uploadedBlobRef.current) {
-        uploadedRef.current = await backend.uploadMap(blob)
-        uploadedBlobRef.current = blob
-      }
+      const fogOps = fogRef.current.getActiveOps()
+      // bake a player-safe image (revealed crisp, hidden blurred/dimmed) so the
+      // raw map never leaves the GM; overwrite a stable object each publish
+      const veiled = await bakeVeiledMap(blob, fogOps, m.width, m.height)
+      const imageRef = await backend.uploadMap(veiled, 'published')
       await backend.publish({
         version: Date.now(),
         width: m.width,
         height: m.height,
-        imageRef: uploadedRef.current!,
-        fogOps: fogRef.current.getActiveOps(),
+        imageRef,
+        fogOps,
         pins: toPublicPins(pinsRef.current),
         grid: {
         enabled: gridOnRef.current,

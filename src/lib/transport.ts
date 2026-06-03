@@ -70,8 +70,10 @@ export type Snapshot = {
 }
 
 export interface Backend {
-  /** Store the map image once; returns a reference used in publish(). */
-  uploadMap(blob: Blob): Promise<string>
+  /** Store the (veiled) image; returns a reference used in publish(). Pass a
+   *  stable `name` to overwrite the same object each publish instead of piling
+   *  up files (the snapshot URL is cache-busted by version). */
+  uploadMap(blob: Blob, name?: string): Promise<string>
   publish(input: PublishInput): Promise<void>
   requestLatest(): Promise<Snapshot | undefined>
   subscribe(onUpdate: (s: Snapshot) => void): () => void
@@ -97,7 +99,7 @@ export function createLocalBackend(): Backend {
   }
 
   return {
-    async uploadMap(blob) {
+    async uploadMap(blob, _name) {
       await idbSet(LOCAL_IMAGE, blob)
       return LOCAL_IMAGE
     },
@@ -121,6 +123,8 @@ export function createLocalBackend(): Backend {
 
 // ── supabase backend ──────────────────────────────────────────────────────
 const BUCKET = 'maps'
+
+const bust = (url: string, v: number) => `${url}${url.includes('?') ? '&' : '?'}v=${v}`
 
 function extFor(blob: Blob): string {
   if (blob.type === 'image/png') return 'png'
@@ -146,15 +150,17 @@ export function createSupabaseBackend(roomId: string): Backend {
     version: Number(row.version),
     width: row.width,
     height: row.height,
-    imageUrl: publicUrl(row.image_path),
+    // cache-bust by version so a stable image path (overwritten each publish)
+    // still refreshes on players' screens
+    imageUrl: bust(publicUrl(row.image_path), Number(row.version)),
     fogOps: row.fog ?? [],
     pins: row.pins ?? [],
     grid: row.grid ?? null,
   })
 
   return {
-    async uploadMap(blob) {
-      const path = `${roomId}/${Date.now()}.${extFor(blob)}`
+    async uploadMap(blob, name) {
+      const path = `${roomId}/${name ?? Date.now()}.${extFor(blob)}`
       const { error } = await sb.storage
         .from(BUCKET)
         .upload(path, blob, { upsert: true, contentType: blob.type })
