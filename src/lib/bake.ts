@@ -23,8 +23,12 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Blur `src` into `dst` (sized w×h) with the edge pixels stretched outward, so
- * the blur stays solid all the way to the margins instead of fading to nothing.
+ * Blur `src` into `dst` (sized w×h) so the result stays fully opaque to the
+ * margins. A plain blur fades to transparent over the blur radius at the edges
+ * (letting the crisp layer underneath show through); to avoid that we first
+ * paint the image into an oversized canvas with its edge pixels stretched into
+ * the margins, blur that, then crop the inner region — which is therefore always
+ * surrounded by opaque content and never fades.
  */
 function blurClamped(
   dst: CanvasRenderingContext2D,
@@ -36,14 +40,36 @@ function blurClamped(
   blurPx: number,
   extraFilter = '',
 ) {
-  const e = blurPx * 3 + 24
-  dst.filter = `blur(${blurPx}px)${extraFilter ? ' ' + extraFilter : ''}`
-  dst.drawImage(src, 0, 0, w, h)
-  dst.drawImage(src, 0, 0, 1, sh, -e, 0, e, h) // left edge stretched left
-  dst.drawImage(src, sw - 1, 0, 1, sh, w, 0, e, h) // right
-  dst.drawImage(src, 0, 0, sw, 1, 0, -e, w, e) // top
-  dst.drawImage(src, 0, sh - 1, sw, 1, 0, h, w, e) // bottom
-  dst.filter = 'none'
+  const p = Math.ceil(blurPx) + 8 // margin ≥ blur radius
+  const bw = w + 2 * p
+  const bh = h + 2 * p
+
+  // 1. image into the inner region, with edges/corners stretched into the margins
+  const ext = document.createElement('canvas')
+  ext.width = bw
+  ext.height = bh
+  const e = ext.getContext('2d')!
+  e.drawImage(src, 0, 0, sw, sh, p, p, w, h)
+  e.drawImage(src, 0, 0, 1, sh, 0, p, p, h) // left
+  e.drawImage(src, sw - 1, 0, 1, sh, p + w, p, p, h) // right
+  e.drawImage(src, 0, 0, sw, 1, p, 0, w, p) // top
+  e.drawImage(src, 0, sh - 1, sw, 1, p, p + h, w, p) // bottom
+  e.drawImage(src, 0, 0, 1, 1, 0, 0, p, p) // TL
+  e.drawImage(src, sw - 1, 0, 1, 1, p + w, 0, p, p) // TR
+  e.drawImage(src, 0, sh - 1, 1, 1, 0, p + h, p, p) // BL
+  e.drawImage(src, sw - 1, sh - 1, 1, 1, p + w, p + h, p, p) // BR
+
+  // 2. blur the oversized canvas
+  const blurred = document.createElement('canvas')
+  blurred.width = bw
+  blurred.height = bh
+  const b = blurred.getContext('2d')!
+  b.filter = `blur(${blurPx}px)${extraFilter ? ' ' + extraFilter : ''}`
+  b.drawImage(ext, 0, 0)
+  b.filter = 'none'
+
+  // 3. crop the inner region (always fully opaque) into dst
+  dst.drawImage(blurred, p, p, w, h, 0, 0, w, h)
 }
 
 export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h: number): Promise<Blob> {
