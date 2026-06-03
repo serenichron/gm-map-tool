@@ -115,14 +115,28 @@ export function PinShape({
   )
 }
 
+// tiny status icons for the GM-only hint badge
+const EyeIcon = (
+  <svg viewBox="0 0 16 16" className="h-[9px] w-[9px]" fill="none" stroke="currentColor" strokeWidth={1.6}>
+    <path d="M1 8c2.5-4 11.5-4 14 0-2.5 4-11.5 4-14 0Z" />
+    <circle cx="8" cy="8" r="2" fill="currentColor" stroke="none" />
+  </svg>
+)
+const TagIcon = (
+  <svg viewBox="0 0 16 16" className="h-[8px] w-[8px]" fill="none" stroke="currentColor" strokeWidth={1.8}>
+    <rect x="2" y="5" width="12" height="6" rx="1.6" />
+  </svg>
+)
+
 /**
  * A teardrop map pin (round top, pointed bottom) whose tip marks the spot.
  * Counter-scaled (via the stage's --inv var) to stay a constant on-screen size.
  * A generous transparent hit area makes it easy to tap on touch. Tap opens; drag
- * moves it (only when `interactive`).
+ * moves it (only when `interactive`). `gmHint` adds GM-only fog-state badges.
  */
 export function PinMarker({
   pin,
+  gmHint = false,
   interactive,
   labelSide = 'right',
   veiled = false,
@@ -136,6 +150,7 @@ export function PinMarker({
   labelSide?: LabelSide
   veiled?: boolean
   showLabel?: boolean
+  gmHint?: boolean
   screenToImage: (clientX: number, clientY: number) => { x: number; y: number }
   onMove: (id: string, x: number, y: number) => void
   onOpen: (id: string) => void
@@ -191,6 +206,28 @@ export function PinMarker({
         }}
       >
         <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} veiled={veiled} gmOnly={!!pin.gmOnly} />
+        {/* GM-only hint: a pin set to show over the fog (never shown to players).
+            No badge = the default (hidden under the fog until revealed). */}
+        {gmHint && !pin.gmOnly && pin.aboveFog && (
+          <div className="pointer-events-none absolute left-[-4px] top-[15px] flex items-center gap-0.5">
+            <span
+              className="flex h-[13px] w-[13px] items-center justify-center rounded-[3px] border"
+              title="Shown over the fog to players"
+              style={{ background: '#2c625e', borderColor: '#3e8e89', color: '#ece0cb' }}
+            >
+              {EyeIcon}
+            </span>
+            {pin.labelAboveFog && (
+              <span
+                className="flex h-[13px] w-[13px] items-center justify-center rounded-[3px] border"
+                title="Its label is shown over the fog"
+                style={{ background: '#2c625e', borderColor: '#3e8e89', color: '#ece0cb' }}
+              >
+                {TagIcon}
+              </span>
+            )}
+          </div>
+        )}
         {pin.title &&
           showLabel &&
           (() => {

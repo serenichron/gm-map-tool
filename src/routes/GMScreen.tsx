@@ -1237,6 +1237,7 @@ function GMWorkspace() {
                       pin={p}
                       interactive={tool === 'pin'}
                       labelSide={labelSides[p.id]}
+                      gmHint
                       screenToImage={screenToImage}
                       onMove={movePin}
                       onOpen={setSelectedId}
