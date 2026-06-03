@@ -22,11 +22,38 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
+/**
+ * Blur `src` into `dst` (sized w×h) with the edge pixels stretched outward, so
+ * the blur stays solid all the way to the margins instead of fading to nothing.
+ */
+function blurClamped(
+  dst: CanvasRenderingContext2D,
+  src: CanvasImageSource,
+  sw: number,
+  sh: number,
+  w: number,
+  h: number,
+  blurPx: number,
+  extraFilter = '',
+) {
+  const e = blurPx * 2 + 8
+  dst.filter = `blur(${blurPx}px)${extraFilter ? ' ' + extraFilter : ''}`
+  dst.drawImage(src, 0, 0, w, h)
+  dst.drawImage(src, 0, 0, 1, sh, -e, 0, e, h) // left edge stretched left
+  dst.drawImage(src, sw - 1, 0, 1, sh, w, 0, e, h) // right
+  dst.drawImage(src, 0, 0, sw, 1, 0, -e, w, e) // top
+  dst.drawImage(src, 0, sh - 1, sw, 1, 0, h, w, e) // bottom
+  dst.filter = 'none'
+}
+
 export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h: number): Promise<Blob> {
   // load from the local blob (object URL) so the canvas isn't cross-origin tainted
   const url = URL.createObjectURL(mapBlob)
   try {
     const img = await loadImage(url)
+    const iw = img.naturalWidth || w
+    const ih = img.naturalHeight || h
+    const min = Math.min(w, h)
 
     // the fog mask: opaque where players cannot see. Match the player's fog.
     const fog = document.createElement('canvas')
@@ -38,24 +65,19 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     fc.attach(fog, w, h)
     fc.setOps(fogOps)
 
-    // soften the mask so the crisp→veiled transition feathers
-    const blurR = Math.max(8, Math.round(Math.min(w, h) * 0.012))
+    // soften the mask (feather the crisp→veiled transition), clamped to margins
     const mask = document.createElement('canvas')
     mask.width = w
     mask.height = h
-    const mctx = mask.getContext('2d')!
-    mctx.filter = `blur(${blurR}px)`
-    mctx.drawImage(fog, 0, 0, w, h)
-    mctx.filter = 'none'
+    blurClamped(mask.getContext('2d')!, fog, w, h, w, h, Math.max(10, Math.round(min * 0.016)))
 
-    // a blurred + dimmed copy of the map, kept only where the fog hides it
+    // a heavily blurred + dimmed copy of the map, clamped so it covers the
+    // margins, kept only where the fog hides it
     const hidden = document.createElement('canvas')
     hidden.width = w
     hidden.height = h
     const hctx = hidden.getContext('2d')!
-    hctx.filter = `blur(${Math.round(Math.min(w, h) * 0.02)}px) brightness(0.6) saturate(0.85)`
-    hctx.drawImage(img, 0, 0, w, h)
-    hctx.filter = 'none'
+    blurClamped(hctx, img, iw, ih, w, h, Math.round(min * 0.04), 'brightness(0.6) saturate(0.85)')
     hctx.globalCompositeOperation = 'destination-in'
     hctx.drawImage(mask, 0, 0, w, h)
     hctx.globalCompositeOperation = 'source-over'
