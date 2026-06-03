@@ -117,12 +117,26 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     hidden.width = w
     hidden.height = h
     const hctx = hidden.getContext('2d')!
-    // dim hard here since the player no longer re-applies frost (only haze)
-    blurClamped(hctx, img, iw, ih, w, h, Math.round(min * 0.08), 'brightness(0.34) saturate(0.8)')
-    // kill contrast so surviving high-contrast features (towns, peaks) stop
-    // reading as shapes — a flat warm dust wash over the blurred veil
+    // Throw away resolution, not just detail: downscale the map to a tiny mosaic
+    // then scale it back up smoothly. Anything smaller than a cell (markers,
+    // buildings, even ridgelines) is averaged away — only broad colour masses
+    // remain, so no feature is readable. (Blur alone keeps large silhouettes.)
+    const tinyMax = 26
+    const tw = Math.max(1, Math.round(iw >= ih ? tinyMax : tinyMax * (iw / ih)))
+    const th = Math.max(1, Math.round(ih >= iw ? tinyMax : tinyMax * (ih / iw)))
+    const tiny = document.createElement('canvas')
+    tiny.width = tw
+    tiny.height = th
+    const tctx = tiny.getContext('2d')!
+    tctx.filter = 'brightness(0.4) saturate(0.8)'
+    tctx.drawImage(img, 0, 0, iw, ih, 0, 0, tw, th)
+    tctx.filter = 'none'
+    hctx.imageSmoothingEnabled = true
+    hctx.imageSmoothingQuality = 'high'
+    hctx.drawImage(tiny, 0, 0, tw, th, 0, 0, w, h)
+    // a flat warm dust wash to settle it into the fog palette
     hctx.globalCompositeOperation = 'source-atop'
-    hctx.fillStyle = 'rgba(38,32,24,0.55)'
+    hctx.fillStyle = 'rgba(38,32,24,0.45)'
     hctx.fillRect(0, 0, w, h)
     // a thick soft black frame baked into the fog: darken the margins toward
     // black (where surviving features cluster) fading to the central hint
