@@ -167,6 +167,38 @@ export function PinEditor({
           </div>
         </label>
 
+        <label className="block">
+          <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+            Player note
+          </span>
+          <textarea
+            value={pin.playerNote}
+            onChange={(e) => onPatch({ playerNote: e.target.value })}
+            rows={4}
+            placeholder="What the table sees when they tap this pin."
+            className="w-full resize-y rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-body text-[14px] leading-relaxed text-bone outline-none focus:border-ochre"
+          />
+          <span className="mt-1.5 block font-ui text-[10.5px] text-bone-dim">
+            Shared with players on Publish.
+          </span>
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 flex items-center gap-2 font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+            GM note
+            <span className="inline-flex items-center gap-1 rounded-full border border-rust/40 bg-rust/10 px-2 py-0.5 text-[10px] normal-case tracking-normal text-rust">
+              ● never shared
+            </span>
+          </span>
+          <textarea
+            value={pin.gmNote}
+            onChange={(e) => onPatch({ gmNote: e.target.value })}
+            rows={5}
+            placeholder="Secrets, hooks, reminders. Stays on your screen only."
+            className="w-full resize-y rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-body text-[14px] leading-relaxed text-bone outline-none focus:border-ochre"
+          />
+        </label>
+
         <div>
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
             Marker
@@ -360,38 +392,6 @@ export function PinEditor({
             Off by default a pin hides under the fog and appears as the map is revealed.
           </span>
         </div>
-
-        <label className="block">
-          <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
-            Player note
-          </span>
-          <textarea
-            value={pin.playerNote}
-            onChange={(e) => onPatch({ playerNote: e.target.value })}
-            rows={4}
-            placeholder="What the table sees when they tap this pin."
-            className="w-full resize-y rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-body text-[14px] leading-relaxed text-bone outline-none focus:border-ochre"
-          />
-          <span className="mt-1.5 block font-ui text-[10.5px] text-bone-dim">
-            Shared with players on Publish.
-          </span>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 flex items-center gap-2 font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
-            GM note
-            <span className="inline-flex items-center gap-1 rounded-full border border-rust/40 bg-rust/10 px-2 py-0.5 text-[10px] normal-case tracking-normal text-rust">
-              ● never shared
-            </span>
-          </span>
-          <textarea
-            value={pin.gmNote}
-            onChange={(e) => onPatch({ gmNote: e.target.value })}
-            rows={5}
-            placeholder="Secrets, hooks, reminders. Stays on your screen only."
-            className="w-full resize-y rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-body text-[14px] leading-relaxed text-bone outline-none focus:border-ochre"
-          />
-        </label>
       </div>
 
       <div className="flex gap-2.5 border-t border-line px-[18px] py-3.5">
