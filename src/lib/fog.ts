@@ -325,65 +325,85 @@ export class FogController {
   private applySemi(stroke: FogStroke) {
     const ctx = this.ctx!
     const r = stroke.radius
-    const centers = stampCenters(stroke.points, r, 0.5)
+    const centers = stampCenters(stroke.points, r, 0.85)
     if (!centers.length) return
 
-    // local drag direction at each stamp (from its neighbours), so tears lock to
-    // the direction they were drawn in — earlier strips don't swing toward the
-    // cursor as the GM changes course. Deterministic from the stroke points.
+    // local drag direction at each stamp (from its neighbours), quantised so it
+    // matches a shred tile. Tears lock to the direction they were drawn in —
+    // earlier strips don't swing toward the cursor as the GM changes course.
     const angleAt = (i: number) => {
       const a = centers[Math.max(0, i - 1)]
       const b = centers[Math.min(centers.length - 1, i + 1)]
       const dx = b.x - a.x
       const dy = b.y - a.y
-      return Math.hypot(dx, dy) > r * 0.25 ? Math.atan2(dy, dx) : -0.35
+      const raw = Math.hypot(dx, dy) > r * 0.25 ? Math.atan2(dy, dx) : -0.35
+      return Math.round(raw * 50) / 50
     }
 
-    const sc = this.scratch
-    const s = sc.getContext('2d')!
+    // group stamps by tear angle so we do a handful of pattern fills, not one
+    // per stamp (keeps undo / replay fast)
+    const buckets = new Map<number, Pt[]>()
     for (let i = 0; i < centers.length; i++) {
-      const p = centers[i]
-      const tile = this.getShred(stroke.seed, angleAt(i))
-      const ox = Math.max(0, Math.floor(p.x - r))
-      const oy = Math.max(0, Math.floor(p.y - r))
-      const ex = Math.min(this.w, Math.ceil(p.x + r))
-      const ey = Math.min(this.h, Math.ceil(p.y + r))
-      const bw = ex - ox
-      const bh = ey - oy
-      if (bw <= 0 || bh <= 0) continue
-      sc.width = bw
-      sc.height = bh
+      const a = angleAt(i)
+      const list = buckets.get(a)
+      if (list) list.push(centers[i])
+      else buckets.set(a, [centers[i]])
+    }
 
-      // feathered stamp circle
-      const cx = p.x - ox
-      const cy = p.y - oy
-      const g = s.createRadialGradient(cx, cy, 0, cx, cy, r)
-      g.addColorStop(0, 'rgba(255,255,255,1)')
-      g.addColorStop(0.6, 'rgba(255,255,255,1)')
-      g.addColorStop(1, 'rgba(255,255,255,0)')
+    // stroke bounding box, clamped to the canvas
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const p of centers) {
+      if (p.x - r < minX) minX = p.x - r
+      if (p.y - r < minY) minY = p.y - r
+      if (p.x + r > maxX) maxX = p.x + r
+      if (p.y + r > maxY) maxY = p.y + r
+    }
+    const ox = Math.max(0, Math.floor(minX))
+    const oy = Math.max(0, Math.floor(minY))
+    const ex = Math.min(this.w, Math.ceil(maxX))
+    const ey = Math.min(this.h, Math.ceil(maxY))
+    const bw = ex - ox
+    const bh = ey - oy
+    if (bw <= 0 || bh <= 0) return
+    this.scratch.width = bw
+    this.scratch.height = bh
+    const s = this.scratch.getContext('2d')!
+    const phaseX = ((ox % SHRED_TILE) + SHRED_TILE) % SHRED_TILE
+    const phaseY = ((oy % SHRED_TILE) + SHRED_TILE) % SHRED_TILE
+
+    for (const [a, pts] of buckets) {
+      s.clearRect(0, 0, bw, bh)
+      // feathered coverage for this angle's stamps
       s.globalCompositeOperation = 'source-over'
-      s.fillStyle = g
-      s.beginPath()
-      s.arc(cx, cy, r, 0, Math.PI * 2)
-      s.fill()
-
-      // intersect with the shred tile, anchored to image space (deterministic)
+      for (const p of pts) {
+        const cx = p.x - ox
+        const cy = p.y - oy
+        const g = s.createRadialGradient(cx, cy, 0, cx, cy, r)
+        g.addColorStop(0, 'rgba(255,255,255,1)')
+        g.addColorStop(0.6, 'rgba(255,255,255,1)')
+        g.addColorStop(1, 'rgba(255,255,255,0)')
+        s.fillStyle = g
+        s.beginPath()
+        s.arc(cx, cy, r, 0, Math.PI * 2)
+        s.fill()
+      }
+      // intersect with this angle's shred tile, anchored to image space
       s.globalCompositeOperation = 'destination-in'
-      const pat = s.createPattern(tile, 'repeat')!
-      const phaseX = ((ox % SHRED_TILE) + SHRED_TILE) % SHRED_TILE
-      const phaseY = ((oy % SHRED_TILE) + SHRED_TILE) % SHRED_TILE
+      const pat = s.createPattern(this.getShred(stroke.seed, a), 'repeat')!
       s.save()
       s.translate(-phaseX, -phaseY)
       s.fillStyle = pat
       s.fillRect(0, 0, bw + SHRED_TILE, bh + SHRED_TILE)
       s.restore()
       s.globalCompositeOperation = 'source-over'
-
-      // carve the torn coverage out of the fog
+      // carve out of the fog
       ctx.save()
       ctx.globalCompositeOperation = 'destination-out'
       ctx.globalAlpha = 0.9
-      ctx.drawImage(sc, 0, 0, bw, bh, ox, oy, bw, bh)
+      ctx.drawImage(this.scratch, ox, oy)
       ctx.globalAlpha = 1
       ctx.restore()
     }
