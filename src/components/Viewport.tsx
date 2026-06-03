@@ -24,7 +24,7 @@ export function Viewport({
   children?: ReactNode
 }) {
   return (
-    <div className={`absolute inset-0 touch-none overflow-hidden ${cursorClass ?? ''}`} ref={viewportRef}>
+    <div className={`absolute inset-0 touch-none select-none overflow-hidden ${cursorClass ?? ''}`} ref={viewportRef}>
       <div
         ref={stageRef}
         className="absolute left-0 top-0 origin-top-left will-change-transform"

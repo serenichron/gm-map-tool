@@ -243,6 +243,9 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
       }
     }
     const noCtx = (e: Event) => e.preventDefault()
+    // stop the browser's native image/selection drag (the ghost semi-transparent
+    // drag) when a trackpad double-tap-drag starts a stroke
+    const noDrag = (e: Event) => e.preventDefault()
 
     vp.addEventListener('pointerdown', down)
     vp.addEventListener('pointermove', move)
@@ -250,8 +253,10 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
     vp.addEventListener('pointercancel', up)
     vp.addEventListener('wheel', wheel, { passive: false })
     vp.addEventListener('contextmenu', noCtx)
+    vp.addEventListener('dragstart', noDrag)
 
     return () => {
+      vp.removeEventListener('dragstart', noDrag)
       vp.removeEventListener('pointerdown', down)
       vp.removeEventListener('pointermove', move)
       vp.removeEventListener('pointerup', up)
