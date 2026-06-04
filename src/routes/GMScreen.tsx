@@ -93,6 +93,8 @@ function GMWorkspace() {
   const [dirty, setDirty] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [preview, setPreview] = useState(false)
+  const [previewArmed, setPreviewArmed] = useState(false) // mount the heavy preview a frame late
+  const [previewReady, setPreviewReady] = useState(false) // preview fog has painted
   const [previewData, setPreviewData] = useState<{
     src: string
     fogOps: ReturnType<FogController['getActiveOps']>
@@ -859,6 +861,26 @@ function GMWorkspace() {
     })
   }
 
+  // show the preview shell + loader immediately, then mount the (heavy) player
+  // render a couple of frames later so the loader paints first instead of freezing
+  useEffect(() => {
+    if (!preview) {
+      setPreviewArmed(false)
+      setPreviewReady(false)
+      return
+    }
+    setPreviewArmed(false)
+    setPreviewReady(false)
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setPreviewArmed(true))
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+    }
+  }, [preview])
+
   const pickFile = () => fileRef.current?.click()
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
 
@@ -1255,7 +1277,7 @@ function GMWorkspace() {
                 </div>
                 <MapFrame width={map.width} height={map.height} />
               </div>
-              {preview && previewData && (
+              {preview && previewArmed && previewData && (
                 <FogView
                   width={map.width}
                   height={map.height}
@@ -1263,6 +1285,7 @@ function GMWorkspace() {
                   fogOps={previewData.fogOps}
                   grid={previewData.grid}
                   pins={previewData.pins}
+                  onReady={() => setPreviewReady(true)}
                 />
               )}
             </Viewport>
@@ -1272,6 +1295,12 @@ function GMWorkspace() {
                 className="pointer-events-none absolute left-0 top-0 z-10 hidden rounded-full border-[1.5px]"
                 style={{ boxShadow: '0 0 0 1px rgba(0,0,0,.5), inset 0 0 12px rgba(224,169,75,.25)' }}
               />
+            )}
+            {preview && !previewReady && (
+              <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#16110b]">
+                <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-[#3a2c1c] border-t-ochre [animation-duration:1.4s]" />
+                <span className="font-ui text-[12px] tracking-[0.06em] text-bone-dim">Raising the dust…</span>
+              </div>
             )}
           </>
         ) : (
