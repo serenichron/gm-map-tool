@@ -246,6 +246,17 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
     // stop the browser's native image/selection drag (the ghost semi-transparent
     // drag) when a trackpad double-tap-drag starts a stroke
     const noDrag = (e: Event) => e.preventDefault()
+    // clear any in-flight gesture when backgrounded — otherwise a missed
+    // pointerup leaves pan/paint "stuck" and the map won't respond on resume
+    const onHidden = () => {
+      if (!document.hidden) return
+      if (painting) optsRef.current.onPaintEnd?.(new PointerEvent('pointerup'))
+      pan = null
+      painting = false
+      pinch = null
+      pointers.clear()
+      vp.style.cursor = ''
+    }
 
     vp.addEventListener('pointerdown', down)
     vp.addEventListener('pointermove', move)
@@ -254,8 +265,10 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
     vp.addEventListener('wheel', wheel, { passive: false })
     vp.addEventListener('contextmenu', noCtx)
     vp.addEventListener('dragstart', noDrag)
+    document.addEventListener('visibilitychange', onHidden)
 
     return () => {
+      document.removeEventListener('visibilitychange', onHidden)
       vp.removeEventListener('dragstart', noDrag)
       vp.removeEventListener('pointerdown', down)
       vp.removeEventListener('pointermove', move)

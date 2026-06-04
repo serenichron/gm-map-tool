@@ -325,37 +325,21 @@ export class FogController {
   private applySemi(stroke: FogStroke) {
     const ctx = this.ctx!
     const r = stroke.radius
-    const centers = stampCenters(stroke.points, r, 0.85)
-    if (!centers.length) return
-
-    // local drag direction at each stamp (from its neighbours), quantised so it
-    // matches a shred tile. Tears lock to the direction they were drawn in —
-    // earlier strips don't swing toward the cursor as the GM changes course.
-    const angleAt = (i: number) => {
-      const a = centers[Math.max(0, i - 1)]
-      const b = centers[Math.min(centers.length - 1, i + 1)]
-      const dx = b.x - a.x
-      const dy = b.y - a.y
-      const raw = Math.hypot(dx, dy) > r * 0.25 ? Math.atan2(dy, dx) : -0.35
-      return Math.round(raw * 50) / 50
-    }
-
-    // group stamps by tear angle so we do a handful of pattern fills, not one
-    // per stamp (keeps undo / replay fast)
-    const buckets = new Map<number, Pt[]>()
-    for (let i = 0; i < centers.length; i++) {
-      const a = angleAt(i)
-      const list = buckets.get(a)
-      if (list) list.push(centers[i])
-      else buckets.set(a, [centers[i]])
-    }
+    // one tear direction per stroke (overall drag), computed once — cheap to
+    // replay. Falls back to the default lean for a tap.
+    const first = stroke.points[0]
+    const last = stroke.points[stroke.points.length - 1]
+    const dx = last.x - first.x
+    const dy = last.y - first.y
+    const angle = Math.hypot(dx, dy) > r * 0.5 ? Math.atan2(dy, dx) : -0.35
+    const tile = this.getShred(stroke.seed, angle)
 
     // stroke bounding box, clamped to the canvas
     let minX = Infinity
     let minY = Infinity
     let maxX = -Infinity
     let maxY = -Infinity
-    for (const p of centers) {
+    for (const p of stroke.points) {
       if (p.x - r < minX) minX = p.x - r
       if (p.y - r < minY) minY = p.y - r
       if (p.x + r > maxX) maxX = p.x + r
@@ -368,45 +352,44 @@ export class FogController {
     const bw = ex - ox
     const bh = ey - oy
     if (bw <= 0 || bh <= 0) return
+
     this.scratch.width = bw
     this.scratch.height = bh
     const s = this.scratch.getContext('2d')!
+
+    // feathered coverage for the whole stroke
+    s.globalCompositeOperation = 'source-over'
+    for (const p of stampCenters(stroke.points, r, 0.85)) {
+      const cx = p.x - ox
+      const cy = p.y - oy
+      const g = s.createRadialGradient(cx, cy, 0, cx, cy, r)
+      g.addColorStop(0, 'rgba(255,255,255,1)')
+      g.addColorStop(0.6, 'rgba(255,255,255,1)')
+      g.addColorStop(1, 'rgba(255,255,255,0)')
+      s.fillStyle = g
+      s.beginPath()
+      s.arc(cx, cy, r, 0, Math.PI * 2)
+      s.fill()
+    }
+
+    // intersect with the shred tile, anchored to image space, then carve
+    s.globalCompositeOperation = 'destination-in'
+    const pat = s.createPattern(tile, 'repeat')!
     const phaseX = ((ox % SHRED_TILE) + SHRED_TILE) % SHRED_TILE
     const phaseY = ((oy % SHRED_TILE) + SHRED_TILE) % SHRED_TILE
+    s.save()
+    s.translate(-phaseX, -phaseY)
+    s.fillStyle = pat
+    s.fillRect(0, 0, bw + SHRED_TILE, bh + SHRED_TILE)
+    s.restore()
+    s.globalCompositeOperation = 'source-over'
 
-    for (const [a, pts] of buckets) {
-      s.clearRect(0, 0, bw, bh)
-      // feathered coverage for this angle's stamps
-      s.globalCompositeOperation = 'source-over'
-      for (const p of pts) {
-        const cx = p.x - ox
-        const cy = p.y - oy
-        const g = s.createRadialGradient(cx, cy, 0, cx, cy, r)
-        g.addColorStop(0, 'rgba(255,255,255,1)')
-        g.addColorStop(0.6, 'rgba(255,255,255,1)')
-        g.addColorStop(1, 'rgba(255,255,255,0)')
-        s.fillStyle = g
-        s.beginPath()
-        s.arc(cx, cy, r, 0, Math.PI * 2)
-        s.fill()
-      }
-      // intersect with this angle's shred tile, anchored to image space
-      s.globalCompositeOperation = 'destination-in'
-      const pat = s.createPattern(this.getShred(stroke.seed, a), 'repeat')!
-      s.save()
-      s.translate(-phaseX, -phaseY)
-      s.fillStyle = pat
-      s.fillRect(0, 0, bw + SHRED_TILE, bh + SHRED_TILE)
-      s.restore()
-      s.globalCompositeOperation = 'source-over'
-      // carve out of the fog
-      ctx.save()
-      ctx.globalCompositeOperation = 'destination-out'
-      ctx.globalAlpha = 0.9
-      ctx.drawImage(this.scratch, ox, oy)
-      ctx.globalAlpha = 1
-      ctx.restore()
-    }
+    ctx.save()
+    ctx.globalCompositeOperation = 'destination-out'
+    ctx.globalAlpha = 0.9
+    ctx.drawImage(this.scratch, ox, oy)
+    ctx.globalAlpha = 1
+    ctx.restore()
   }
 
   private getShred(seed: number, angle = -0.35): HTMLCanvasElement {
@@ -455,6 +438,11 @@ export class FogController {
       }
     }
     this.shredCache.set(key, tile)
+    // bound memory: a curvy semi stroke makes many per-angle tiles; evict oldest
+    if (this.shredCache.size > 48) {
+      const oldest = this.shredCache.keys().next().value
+      if (oldest !== undefined) this.shredCache.delete(oldest)
+    }
     return tile
   }
 }
