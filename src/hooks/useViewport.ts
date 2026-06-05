@@ -153,6 +153,9 @@ export function useViewport(width: number, height: number, opts: ViewportOpts = 
       if (pointers.size > 2) return
 
       const o = optsRef.current
+      // let the pin-note popover handle its own taps (close button etc.) — don't
+      // start a pan that would capture the pointer and steal the click
+      if ((e.target as Element | null)?.closest?.('[data-popover]')) return
       // only let a pin keep the press when pins are draggable; otherwise pan/paint
       if (o.pinsDraggable?.() && (e.target as Element | null)?.closest?.('[data-pin]')) return
       const wantsPan = o.shouldPan ? o.shouldPan(e) : true
