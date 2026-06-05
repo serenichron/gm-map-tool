@@ -10,7 +10,7 @@
  * The wire only ever carries PublicPin — the GM-only note never leaves the GM.
  */
 import type { FogOp } from './fog.ts'
-import { getPinColor, type Pin } from './pins.ts'
+import { getPinColor, isShared, type Disposition, type NpcStatus, type Pin } from './pins.ts'
 import { DEFAULT_HAZE, type HazeStyle } from './fogStyle.ts'
 import type { GridSettings } from './types.ts'
 import { idbGet, idbSet } from './storage.ts'
@@ -28,25 +28,42 @@ export type PublicPin = {
   labelAboveFog?: boolean
   title: string
   playerNote: string
+  // NPC (only present when kind === 'npc'); unshared fields are omitted
+  kind?: 'place' | 'npc'
+  portrait?: string
+  role?: string
+  disposition?: Disposition
+  status?: NpcStatus
 }
 
-/** Drop the GM-only note, and GM-only pins entirely: neither reaches a player. */
+/** Drop the GM-only note, GM-only pins, and any NPC field not shared with players. */
 export const toPublicPins = (pins: Pin[]): PublicPin[] =>
   pins
     .filter((p) => !p.gmOnly)
-    .map(({ id, x, y, title, playerNote, ...p }) => ({
-    id,
-    x,
-    y,
-    color: getPinColor(p),
-    icon: p.icon || 'pin',
-    borderColor: p.borderColor,
-    labelBg: p.labelBg,
-    aboveFog: p.aboveFog,
-    labelAboveFog: p.labelAboveFog,
-    title,
-    playerNote,
-  }))
+    .map(({ id, x, y, title, playerNote, ...p }) => {
+      const base: PublicPin = {
+        id,
+        x,
+        y,
+        color: getPinColor(p),
+        icon: p.icon || 'pin',
+        borderColor: p.borderColor,
+        labelBg: p.labelBg,
+        aboveFog: p.aboveFog,
+        labelAboveFog: p.labelAboveFog,
+        title,
+        playerNote,
+      }
+      if (p.kind !== 'npc') return base
+      return {
+        ...base,
+        kind: 'npc',
+        portrait: p.portrait,
+        role: isShared(p, 'role') ? p.role : undefined,
+        disposition: isShared(p, 'disposition') ? p.disposition : undefined,
+        status: isShared(p, 'status') ? p.status : undefined,
+      }
+    })
 
 /** What the GM hands to publish(). The image is uploaded separately via uploadMap. */
 export type PublishInput = {

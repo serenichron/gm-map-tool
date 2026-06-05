@@ -16,6 +16,10 @@ export type CrystalDomain =
   | 'pale'
   | 'void'
 
+export type PinKind = 'place' | 'npc'
+export type Disposition = 'friendly' | 'neutral' | 'hostile' | 'unknown'
+export type NpcStatus = 'alive' | 'wounded' | 'dead' | 'fled' | 'hidden' | 'unknown'
+
 export type Pin = {
   id: string
   x: number
@@ -31,7 +35,37 @@ export type Pin = {
   labelAboveFog?: boolean // when above the fog, also show its title label
   gmOnly?: boolean // private to the GM — never sent to players
   domain?: CrystalDomain // legacy pins (pre-colour); used as a fallback
+  // ── NPC (kind === 'npc') ──
+  kind?: PinKind // default 'place'
+  portrait?: string // small resized data URL, shown in the token + popover
+  role?: string
+  disposition?: Disposition
+  status?: NpcStatus
+  share?: Record<string, boolean> // per-field player visibility (NPC fields)
 }
+
+export const DISPOSITIONS: { key: Disposition; label: string; color: string }[] = [
+  { key: 'friendly', label: 'Friendly', color: '#3e8e89' },
+  { key: 'neutral', label: 'Neutral', color: '#c8bca6' },
+  { key: 'hostile', label: 'Hostile', color: '#a8503a' },
+  { key: 'unknown', label: 'Unknown', color: '#6a5a44' },
+]
+export const dispositionColor = (d?: Disposition): string =>
+  DISPOSITIONS.find((x) => x.key === d)?.color ?? '#6a5a44'
+
+export const NPC_STATUSES: { key: NpcStatus; label: string }[] = [
+  { key: 'alive', label: 'Alive' },
+  { key: 'wounded', label: 'Wounded' },
+  { key: 'dead', label: 'Dead' },
+  { key: 'fled', label: 'Fled' },
+  { key: 'hidden', label: 'Hidden' },
+  { key: 'unknown', label: 'Unknown' },
+]
+
+// default per-field player visibility for NPC fields the GM can toggle
+const SHARE_DEFAULTS: Record<string, boolean> = { role: true, disposition: false, status: false }
+export const isShared = (pin: { share?: Record<string, boolean> }, field: string): boolean =>
+  pin.share?.[field] ?? SHARE_DEFAULTS[field] ?? false
 
 export const DEFAULT_PIN_COLOR = '#c8923d' // amber
 export const DEFAULT_PIN_BORDER = '#403a32' // dark warm grey (not black)

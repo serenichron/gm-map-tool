@@ -1,8 +1,19 @@
 import { useRef, useState } from 'react'
-import { DOMAINS, getPinColor, DEFAULT_PIN_BORDER, DEFAULT_PIN_LABEL_BG, type Pin } from '../lib/pins.ts'
+import {
+  DOMAINS,
+  DISPOSITIONS,
+  NPC_STATUSES,
+  dispositionColor,
+  getPinColor,
+  isShared,
+  DEFAULT_PIN_BORDER,
+  DEFAULT_PIN_LABEL_BG,
+  type Pin,
+} from '../lib/pins.ts'
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
 import { PinShape, glyphColor } from './PinMarker.tsx'
 import { ColorPicker } from './ColorPicker.tsx'
+import { resizePortrait } from '../lib/image.ts'
 
 const SAVED_KEY = 'worldsmith-custom-colors'
 const MAX_SAVED = 15
@@ -50,6 +61,8 @@ export function PinEditor({
   const [extra, setExtra] = useState<'border' | 'label' | null>(null)
   const [titleFocused, setTitleFocused] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
+  const portraitRef = useRef<HTMLInputElement>(null)
+  const isNpc = pin.kind === 'npc'
   const current = getPinColor(pin)
   const labelBg = pin.labelBg || DEFAULT_PIN_LABEL_BG
   const labelFg = glyphColor(labelBg)
@@ -65,6 +78,32 @@ export function PinEditor({
   function removeColor(c: string) {
     persist(saved.filter((x) => x !== c))
   }
+  function toggleShare(field: string) {
+    onPatch({ share: { ...(pin.share ?? {}), [field]: !isShared(pin, field) } })
+  }
+  async function onPortrait(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    try {
+      onPatch({ portrait: await resizePortrait(f) })
+    } catch {
+      /* ignore bad image */
+    }
+  }
+  // a compact "shown/hidden to players" pill for an NPC field
+  const shareBtn = (field: string) => (
+    <button
+      type="button"
+      onClick={() => toggleShare(field)}
+      title={isShared(pin, field) ? 'Visible to players' : 'Hidden from players'}
+      className={`ml-auto shrink-0 rounded-[6px] border px-1.5 py-0.5 font-ui text-[10px] ${
+        isShared(pin, field) ? 'border-teal/60 bg-teal/10 text-teal' : 'border-line text-bone-dim'
+      }`}
+    >
+      {isShared(pin, field) ? 'shown' : 'hidden'}
+    </button>
+  )
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-2xl border-t border-line bg-gradient-to-b from-panel-2 to-[#1c150d] shadow-[0_-12px_30px_rgba(0,0,0,.4)] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[340px] sm:rounded-none sm:border-l sm:border-t-0 sm:shadow-[-12px_0_30px_rgba(0,0,0,.4)]">
@@ -96,6 +135,9 @@ export function PinEditor({
               size={26}
               stroke={pin.borderColor || DEFAULT_PIN_BORDER}
               gmOnly={!!pin.gmOnly}
+              npc={isNpc}
+              portrait={pin.portrait}
+              ring={dispositionColor(pin.disposition)}
             />
           </div>
           {pin.title && (
@@ -136,9 +178,24 @@ export function PinEditor({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden px-[18px] py-4">
+        {/* type: place marker vs NPC */}
+        <div className="flex rounded-[9px] border border-line bg-[#0f0b06] p-0.5">
+          {(['place', 'npc'] as const).map((k) => (
+            <button
+              key={k}
+              onClick={() => onPatch({ kind: k })}
+              className={`flex-1 rounded-[7px] py-1.5 font-ui text-[12px] font-semibold capitalize transition ${
+                (pin.kind ?? 'place') === k ? 'bg-ochre/15 text-gold' : 'text-bone-dim hover:text-bone'
+              }`}
+            >
+              {k === 'npc' ? 'NPC' : 'Place'}
+            </button>
+          ))}
+        </div>
+
         <label className="block">
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
-            Title
+            {isNpc ? 'Name' : 'Title'}
           </span>
           <div className="flex items-stretch gap-2">
             <input
@@ -168,9 +225,109 @@ export function PinEditor({
           </div>
         </label>
 
+        {isNpc && (
+          <div className="flex flex-col gap-3">
+            {/* portrait */}
+            <div>
+              <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+                Portrait
+              </span>
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-14 w-14 shrink-0 overflow-hidden rounded-full border-2"
+                  style={{ borderColor: dispositionColor(pin.disposition), background: '#16110b' }}
+                >
+                  {pin.portrait ? (
+                    <span
+                      className="block h-full w-full"
+                      style={{ backgroundImage: `url(${pin.portrait})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-bone-dim">
+                      <PinGlyph name="npc" className="h-7 w-7" />
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => portraitRef.current?.click()}
+                  className="rounded-[9px] border border-line bg-panel-2 px-3 py-2 font-ui text-[12px] text-bone hover:bg-[#352818]"
+                >
+                  {pin.portrait ? 'Replace' : 'Upload'}
+                </button>
+                {pin.portrait && (
+                  <button
+                    onClick={() => onPatch({ portrait: undefined })}
+                    className="font-ui text-[11px] text-bone-dim hover:text-rust"
+                  >
+                    Remove
+                  </button>
+                )}
+                <input ref={portraitRef} type="file" accept="image/*" className="hidden" onChange={onPortrait} />
+              </div>
+            </div>
+
+            {/* role */}
+            <label className="block">
+              <span className="mb-1.5 flex items-center gap-2 font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+                Role {shareBtn('role')}
+              </span>
+              <input
+                type="text"
+                value={pin.role ?? ''}
+                onChange={(e) => onPatch({ role: e.target.value })}
+                placeholder="e.g. Saltworks foreman"
+                autoComplete="off"
+                className="w-full rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-body text-[14px] text-bone outline-none focus:border-ochre"
+              />
+            </label>
+
+            {/* disposition */}
+            <div>
+              <span className="mb-1.5 flex items-center gap-2 font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+                Disposition {shareBtn('disposition')}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {DISPOSITIONS.map((d) => {
+                  const sel = (pin.disposition ?? 'unknown') === d.key
+                  return (
+                    <button
+                      key={d.key}
+                      onClick={() => onPatch({ disposition: d.key })}
+                      className={`flex items-center gap-1.5 rounded-[8px] border px-2 py-1 font-ui text-[12px] ${
+                        sel ? 'border-ochre text-bone' : 'border-line text-bone-dim hover:text-bone'
+                      }`}
+                    >
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: d.color }} />
+                      {d.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* status */}
+            <label className="block">
+              <span className="mb-1.5 flex items-center gap-2 font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+                Status {shareBtn('status')}
+              </span>
+              <select
+                value={pin.status ?? 'alive'}
+                onChange={(e) => onPatch({ status: e.target.value as Pin['status'] })}
+                className="w-full rounded-[9px] border border-line bg-[#0f0b06] px-3 py-2.5 font-ui text-[13px] text-bone outline-none focus:border-ochre"
+              >
+                {NPC_STATUSES.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+
         <label className="block">
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
-            Player note
+            {isNpc ? 'Description (players)' : 'Player note'}
           </span>
           <textarea
             value={pin.playerNote}
@@ -247,34 +404,36 @@ export function PinEditor({
           </div>
         </div>
 
-        <div>
-          <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
-            Marker
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {PIN_ICONS.map((g) => {
-              const selected = (pin.icon || 'pin') === g.key
-              return (
-                <button
-                  key={g.key}
-                  title={g.label}
-                  onClick={() => onPatch({ icon: g.key })}
-                  className={`flex h-9 w-9 items-center justify-center rounded-[8px] border transition ${
-                    selected
-                      ? 'border-ochre bg-ochre/15 text-gold'
-                      : 'border-line bg-panel-2 text-bone-dim hover:bg-[#352818] hover:text-bone'
-                  }`}
-                >
-                  {g.key === 'pin' ? (
-                    <span className="text-[11px]">—</span>
-                  ) : (
-                    <PinGlyph name={g.key} className="h-[18px] w-[18px]" />
-                  )}
-                </button>
-              )
-            })}
+        {!isNpc && (
+          <div>
+            <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">
+              Marker
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {PIN_ICONS.map((g) => {
+                const selected = (pin.icon || 'pin') === g.key
+                return (
+                  <button
+                    key={g.key}
+                    title={g.label}
+                    onClick={() => onPatch({ icon: g.key })}
+                    className={`flex h-9 w-9 items-center justify-center rounded-[8px] border transition ${
+                      selected
+                        ? 'border-ochre bg-ochre/15 text-gold'
+                        : 'border-line bg-panel-2 text-bone-dim hover:bg-[#352818] hover:text-bone'
+                    }`}
+                  >
+                    {g.key === 'pin' ? (
+                      <span className="text-[11px]">—</span>
+                    ) : (
+                      <PinGlyph name={g.key} className="h-[18px] w-[18px]" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <span className="mb-1.5 block font-ui text-[11px] uppercase tracking-[0.08em] text-ochre">

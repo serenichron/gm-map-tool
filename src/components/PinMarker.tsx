@@ -1,5 +1,12 @@
 import { useRef } from 'react'
-import { getPinColor, DEFAULT_PIN_BORDER, DEFAULT_PIN_LABEL_BG, type LabelSide, type Pin } from '../lib/pins.ts'
+import {
+  getPinColor,
+  dispositionColor,
+  DEFAULT_PIN_BORDER,
+  DEFAULT_PIN_LABEL_BG,
+  type LabelSide,
+  type Pin,
+} from '../lib/pins.ts'
 import { PinGlyph } from './PinGlyph.tsx'
 import { swallowNextClick } from '../lib/tap.ts'
 
@@ -33,6 +40,9 @@ export function PinShape({
   stroke = DEFAULT_PIN_BORDER,
   veiled = false,
   gmOnly = false,
+  npc = false,
+  portrait,
+  ring = '#6a5a44',
 }: {
   color: string
   icon: string
@@ -40,21 +50,78 @@ export function PinShape({
   stroke?: string
   veiled?: boolean
   gmOnly?: boolean
+  npc?: boolean
+  portrait?: string
+  ring?: string // disposition colour for NPC head ring
 }) {
   const w = size
   const h = (size * 33) / 26
   const g = size * 0.5
   const bw = size * 0.46 // gm-only "!" badge
-  const content = (
+  const teardrop = (
+    <path
+      d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
+      fill={color}
+      stroke={stroke}
+      strokeWidth={gmOnly ? 1.8 : 1.6}
+      strokeDasharray={gmOnly ? '3 2.2' : undefined}
+    />
+  )
+  const badge = gmOnly ? (
+    <div
+      className="absolute flex items-center justify-center rounded-full font-ui font-extrabold"
+      style={{
+        top: -bw * 0.18,
+        right: -bw * 0.18,
+        width: bw,
+        height: bw,
+        background: '#a8503a',
+        color: '#fff',
+        fontSize: bw * 0.72,
+        lineHeight: 1,
+        border: '1px solid rgba(0,0,0,.45)',
+        boxShadow: '0 1px 2px rgba(0,0,0,.5)',
+      }}
+    >
+      !
+    </div>
+  ) : null
+
+  const headD = size * 0.64
+  const content = npc ? (
     <>
       <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="absolute inset-0 block">
-        <path
-          d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
-          fill={color}
-          stroke={stroke}
-          strokeWidth={gmOnly ? 1.8 : 1.6}
-          strokeDasharray={gmOnly ? '3 2.2' : undefined}
-        />
+        {teardrop}
+      </svg>
+      {/* portrait/bust head with a disposition ring */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full"
+        style={{
+          top: (h * 13) / 36,
+          width: headD,
+          height: headD,
+          border: `${Math.max(1.5, size * 0.075)}px solid ${ring}`,
+          background: '#1a130b',
+          boxSizing: 'border-box',
+        }}
+      >
+        {portrait ? (
+          <span
+            className="block h-full w-full"
+            style={{ backgroundImage: `url(${portrait})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-bone">
+            <PinGlyph name="npc" className="h-[64%] w-[64%]" />
+          </span>
+        )}
+      </div>
+      {badge}
+    </>
+  ) : (
+    <>
+      <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="absolute inset-0 block">
+        {teardrop}
         <circle cx="14" cy="13" r="8.5" fill="rgba(0,0,0,.16)" />
       </svg>
       <div
@@ -63,31 +130,25 @@ export function PinShape({
       >
         <PinGlyph name={icon || 'pin'} className="h-full w-full" />
       </div>
-      {gmOnly && (
-        <div
-          className="absolute flex items-center justify-center rounded-full font-ui font-extrabold"
-          style={{
-            top: -bw * 0.18,
-            right: -bw * 0.18,
-            width: bw,
-            height: bw,
-            background: '#a8503a',
-            color: '#fff',
-            fontSize: bw * 0.72,
-            lineHeight: 1,
-            border: '1px solid rgba(0,0,0,.45)',
-            boxShadow: '0 1px 2px rgba(0,0,0,.5)',
-          }}
-        >
-          !
-        </div>
-      )}
+      {badge}
     </>
   )
 
   if (!veiled) {
     return (
       <div className="relative" style={{ width: w, height: h, filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,.55))' }}>
+        {content}
+      </div>
+    )
+  }
+
+  // NPC keeps a simpler veil (a portrait can't be cleanly split into two masks)
+  if (npc) {
+    return (
+      <div
+        className="relative"
+        style={{ width: w, height: h, opacity: 0.82, filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,.5)) blur(0.6px)' }}
+      >
         {content}
       </div>
     )
@@ -207,7 +268,17 @@ export function PinMarker({
         {/* generous transparent hit area so the pin is easy to grab and drag,
             especially on touch (events bubble to this [data-pin] handler) */}
         <span className="absolute" style={{ inset: -13 }} aria-hidden />
-        <PinShape color={color} icon={pin.icon || 'pin'} size={26} stroke={border} veiled={veiled} gmOnly={!!pin.gmOnly} />
+        <PinShape
+          color={color}
+          icon={pin.icon || 'pin'}
+          size={26}
+          stroke={border}
+          veiled={veiled}
+          gmOnly={!!pin.gmOnly}
+          npc={pin.kind === 'npc'}
+          portrait={pin.portrait}
+          ring={dispositionColor(pin.disposition)}
+        />
         {/* GM-only hint: a pin set to show over the fog (never shown to players).
             No badge = the default (hidden under the fog until revealed). */}
         {gmHint && pin.aboveFog && (
