@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const V = 240 // crop viewport / circle diameter (px)
-const OUT = 160 // output portrait size (px)
+const OUT = 224 // output portrait size (px) — crisp in the token when zoomed
 
 /**
  * Facebook-style portrait cropper: a fixed circle, with the image pannable and

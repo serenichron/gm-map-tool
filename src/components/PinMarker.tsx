@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useId, useRef } from 'react'
 import {
   getPinColor,
   dispositionColor,
@@ -58,6 +58,16 @@ export function PinShape({
   const h = (size * 33) / 26
   const g = size * 0.5
   const bw = size * 0.46 // gm-only "!" badge
+  const fid = useId() // unique SVG drop-shadow filter id
+  // shadow lives in the SVG (vector) so it stays crisp at any zoom — a CSS
+  // `filter: drop-shadow` rasterises the element at low res and then scales it
+  const shadowDefs = (
+    <defs>
+      <filter id={fid} x="-40%" y="-25%" width="180%" height="160%">
+        <feDropShadow dx="0" dy="1.1" stdDeviation="0.9" floodColor="#000" floodOpacity="0.55" />
+      </filter>
+    </defs>
+  )
   const teardrop = (
     <path
       d="M14 35 C6 24 2 19 2 13 a12 12 0 0 1 24 0 C26 19 22 24 14 35 Z"
@@ -91,7 +101,8 @@ export function PinShape({
   const content = npc ? (
     <>
       <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="absolute inset-0 block">
-        {teardrop}
+        {shadowDefs}
+        <g filter={`url(#${fid})`}>{teardrop}</g>
       </svg>
       {/* portrait/bust head with a disposition ring */}
       <div
@@ -121,7 +132,8 @@ export function PinShape({
   ) : (
     <>
       <svg viewBox="0 0 28 36" style={{ width: w, height: h }} className="absolute inset-0 block">
-        {teardrop}
+        {shadowDefs}
+        <g filter={`url(#${fid})`}>{teardrop}</g>
         <circle cx="14" cy="13" r="8.5" fill="rgba(0,0,0,.16)" />
       </svg>
       <div
@@ -136,7 +148,7 @@ export function PinShape({
 
   if (!veiled) {
     return (
-      <div className="relative" style={{ width: w, height: h, filter: 'drop-shadow(0 1.5px 2px rgba(0,0,0,.55))' }}>
+      <div className="relative" style={{ width: w, height: h }}>
         {content}
       </div>
     )
@@ -219,6 +231,10 @@ export function PinMarker({
   const labelBg = pin.labelBg || DEFAULT_PIN_LABEL_BG
   const labelFg = glyphColor(labelBg)
   const labelBorder = labelFg === '#16110b' ? 'rgba(0,0,0,.28)' : 'rgba(74,58,39,.7)'
+  const isNpc = pin.kind === 'npc'
+  const size = isNpc ? 33 : 26 // NPCs read as people — a bit larger
+  const headTop = size * 0.5 // label vertical centre ≈ head centre
+  const sideX = size + 1 // label horizontal offset from the pin centre
   const dragging = useRef(false)
 
   function onPointerDown(e: React.PointerEvent) {
@@ -267,15 +283,15 @@ export function PinMarker({
       >
         {/* generous transparent hit area so the pin is easy to grab and drag,
             especially on touch (events bubble to this [data-pin] handler) */}
-        <span className="absolute" style={{ inset: -13 }} aria-hidden />
+        <span className="absolute" style={{ inset: -Math.round(size * 0.5) }} aria-hidden />
         <PinShape
           color={color}
           icon={pin.icon || 'pin'}
-          size={26}
+          size={size}
           stroke={border}
           veiled={veiled}
           gmOnly={!!pin.gmOnly}
-          npc={pin.kind === 'npc'}
+          npc={isNpc}
           portrait={pin.portrait}
           ring={dispositionColor(pin.disposition)}
         />
@@ -283,9 +299,9 @@ export function PinMarker({
             No badge = the default (hidden under the fog until revealed). */}
         {gmHint && pin.aboveFog && (
           <span
-            className="pointer-events-none absolute left-[-4px] top-[15px] flex h-[13px] w-[13px] items-center justify-center rounded-[3px] border"
+            className="pointer-events-none absolute flex h-[13px] w-[13px] items-center justify-center rounded-[3px] border"
             title="Shown over the fog to players"
-            style={{ background: '#2c625e', borderColor: '#3e8e89', color: '#ece0cb' }}
+            style={{ left: -4, top: headTop + 2, background: '#2c625e', borderColor: '#3e8e89', color: '#ece0cb' }}
           >
             {EyeIcon}
           </span>
@@ -306,8 +322,8 @@ export function PinMarker({
             return labelSide === 'left' ? (
               // label to the LEFT of the pin head, arrow pointing right at the pin
               <div
-                className="pointer-events-none absolute right-[27px] top-[13px] flex -translate-y-1/2 items-center"
-                style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
+                className="pointer-events-none absolute flex -translate-y-1/2 items-center"
+                style={{ right: sideX, top: headTop, opacity: LABEL_FADE, transition: 'opacity .2s' }}
               >
                 {pill}
                 <span className="h-0 w-0 border-y-[5px] border-l-[6px] border-y-transparent" style={{ borderLeftColor: labelBg }} />
@@ -315,8 +331,8 @@ export function PinMarker({
             ) : (
               // label to the RIGHT of the pin head, arrow pointing left at the pin
               <div
-                className="pointer-events-none absolute left-[27px] top-[13px] flex -translate-y-1/2 items-center"
-                style={{ opacity: LABEL_FADE, transition: 'opacity .2s' }}
+                className="pointer-events-none absolute flex -translate-y-1/2 items-center"
+                style={{ left: sideX, top: headTop, opacity: LABEL_FADE, transition: 'opacity .2s' }}
               >
                 <span className="h-0 w-0 border-y-[5px] border-r-[6px] border-y-transparent" style={{ borderRightColor: labelBg }} />
                 {pill}
