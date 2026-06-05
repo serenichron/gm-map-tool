@@ -16,6 +16,8 @@ import { pixelToHex } from '../lib/hex.ts'
 import { newPinId, DEFAULT_PIN_COLOR, computeLabelSides, type Pin } from '../lib/pins.ts'
 import { swallowNextClick } from '../lib/tap.ts'
 import { bakeVeiledMap } from '../lib/bake.ts'
+import { FogControls } from '../components/FogControls.tsx'
+import { loadHazeStyle, saveHazeStyle, type HazeStyle } from '../lib/fogStyle.ts'
 import { idbGet, idbSet, idbDel, imgKey, workKey, type WorkingState } from '../lib/storage.ts'
 import {
   createLocalBackend,
@@ -95,6 +97,7 @@ function GMWorkspace() {
   const [preview, setPreview] = useState(false)
   const [previewArmed, setPreviewArmed] = useState(false) // mount the heavy preview a frame late
   const [previewReady, setPreviewReady] = useState(false) // preview fog has painted
+  const [hazeStyle, setHazeStyle] = useState<HazeStyle>(loadHazeStyle)
   const [previewData, setPreviewData] = useState<{
     src: string
     fogOps: ReturnType<FogController['getActiveOps']>
@@ -1285,6 +1288,7 @@ function GMWorkspace() {
                   fogOps={previewData.fogOps}
                   grid={previewData.grid}
                   pins={previewData.pins}
+                  hazeStyle={hazeStyle}
                   onReady={() => setPreviewReady(true)}
                 />
               )}
@@ -1300,6 +1304,20 @@ function GMWorkspace() {
               <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#16110b]">
                 <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-[#3a2c1c] border-t-ochre [animation-duration:1.4s]" />
                 <span className="font-ui text-[12px] tracking-[0.06em] text-bone-dim">Raising the dust…</span>
+              </div>
+            )}
+            {preview && previewReady && (
+              <div className="absolute bottom-3 left-3 z-30 w-[270px] rounded-xl border border-line bg-gradient-to-b from-panel-2 to-panel p-3 shadow-2xl">
+                <span className="mb-2 block font-ui text-[10px] uppercase tracking-[0.08em] text-ochre">
+                  Fog clouds
+                </span>
+                <FogControls
+                  style={hazeStyle}
+                  onChange={(s) => {
+                    setHazeStyle(s)
+                    saveHazeStyle(s)
+                  }}
+                />
               </div>
             )}
           </>

@@ -16,6 +16,8 @@ import { hasSupabase } from '../lib/supabase.ts'
 import { ensureSession } from '../lib/session.ts'
 import { getRoomByCode } from '../lib/rooms.ts'
 import { addRecentRoom } from '../lib/recent.ts'
+import { FogControls } from '../components/FogControls.tsx'
+import { loadHazeStyle, saveHazeStyle, type HazeStyle } from '../lib/fogStyle.ts'
 
 type Pub = {
   version: number
@@ -45,6 +47,8 @@ export function PlayerScreen() {
     return Number.isFinite(v) && v > 0 ? v : 25
   })
   const [gridMenu, setGridMenu] = useState(false)
+  const [fogMenu, setFogMenu] = useState(false)
+  const [hazeStyle, setHazeStyle] = useState<HazeStyle>(loadHazeStyle)
 
   const lastVersion = useRef(0)
   const lastBlobUrl = useRef<string | null>(null)
@@ -126,6 +130,31 @@ export function PlayerScreen() {
         <span className={`h-2 w-2 rounded-full ${connected ? 'bg-teal' : 'bg-bone-dim'}`} />
         {connected ? 'Live' : '…'}
       </span>
+      {pub && (
+        <div className="relative">
+          <button
+            className={`${iconBtn} text-[11px] font-semibold`}
+            onClick={() => setFogMenu((o) => !o)}
+            title="Fog clouds"
+          >
+            Fog
+          </button>
+          {fogMenu && (
+            <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[260px] rounded-xl border border-line bg-gradient-to-b from-panel-2 to-panel p-3 shadow-2xl">
+              <span className="mb-2 block font-ui text-[10px] uppercase tracking-[0.08em] text-ochre">
+                Fog clouds
+              </span>
+              <FogControls
+                style={hazeStyle}
+                onChange={(s) => {
+                  setHazeStyle(s)
+                  saveHazeStyle(s)
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
       {pub?.grid?.enabled && (
         <div className="relative">
           <button className={iconBtn} onClick={() => setGridMenu((o) => !o)} title="Grid display">
@@ -206,6 +235,7 @@ export function PlayerScreen() {
               grid={pub.grid}
               pins={pins}
               baked
+              hazeStyle={hazeStyle}
               onReady={() => setFogReady(true)}
               gridOpacity={useGmGrid ? undefined : playerGridOpacity}
             />

@@ -38,7 +38,7 @@ function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
     return { p, g }
   })
   const smooth = (t: number) => t * t * (3 - 2 * t)
-  const [dr, dg, db] = DUST.split(',').map(Number)
+  // white + per-pixel alpha (the cloud density); each layer is tinted from this
   const data = new Uint8ClampedArray(size * size * 4)
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -65,9 +65,9 @@ function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
       a = a < 0 ? 0 : a > 1 ? 1 : a
       a = a * a * (3 - 2 * a)
       const i = (y * size + x) * 4
-      data[i] = dr
-      data[i + 1] = dg
-      data[i + 2] = db
+      data[i] = 255
+      data[i + 1] = 255
+      data[i + 2] = 255
       data[i + 3] = Math.round(a * 255)
     }
   }
@@ -80,6 +80,27 @@ function makeNoiseTile(size: number, seed: number): HTMLCanvasElement {
 let sharedTile: HTMLCanvasElement | null = null
 const tile = () => (sharedTile ??= makeNoiseTile(TILE, 1337))
 
+// tint the white+alpha noise tile to a colour (cheap; cached per colour)
+function tintTile(base: HTMLCanvasElement, color: string): HTMLCanvasElement {
+  const c = document.createElement('canvas')
+  c.width = base.width
+  c.height = base.height
+  const x = c.getContext('2d')!
+  x.drawImage(base, 0, 0)
+  x.globalCompositeOperation = 'source-in'
+  x.fillStyle = color
+  x.fillRect(0, 0, c.width, c.height)
+  return c
+}
+
+// per-layer baseline drift, scale and opacity (speed multipliers applied live)
+const LAYERS = [
+  { tx: 0.009, ty: 0.006, scale: 1.25, alpha: 0.7 },
+  { tx: -0.00675, ty: 0.009, scale: 1.8, alpha: 0.55 },
+  { tx: 0.0036, ty: -0.00285, scale: 2.7, alpha: 0.34 },
+]
+const DEFAULT_COLORS = ['#5b4a35', '#46443a', '#352c22']
+
 export class FogHaze {
   private ax: CanvasRenderingContext2D | null = null
   private mask: HTMLCanvasElement | null = null
@@ -89,11 +110,25 @@ export class FogHaze {
   private last = 0
   private running = false
   private wasHidden = false
-  private tex = tile()
+  private base = tile()
+  private colors: string[] = [...DEFAULT_COLORS]
+  private speeds: number[] = [1, 1, 1]
+  private tints: HTMLCanvasElement[] = this.colors.map((c) => tintTile(this.base, c))
   /** called on the first painted frame after the tab/app returns from the
    *  background — the moment the canvas is live again, so static fog layers
    *  (which the OS may have wiped) can be repainted reliably. */
   onResume: (() => void) | null = null
+
+  /** set per-layer colours + speed multipliers (re-tints only changed colours) */
+  setStyle(colors: [string, string, string], speeds: [number, number, number]) {
+    for (let i = 0; i < 3; i++) {
+      if (colors[i] !== this.colors[i]) {
+        this.colors[i] = colors[i]
+        this.tints[i] = tintTile(this.base, colors[i])
+      }
+    }
+    this.speeds = [speeds[0], speeds[1], speeds[2]]
+  }
 
   configure(anim: HTMLCanvasElement, mask: HTMLCanvasElement, w: number, h: number) {
     this.ax = anim.getContext('2d')
@@ -130,8 +165,15 @@ export class FogHaze {
     this.draw(t)
   }
 
-  private layer(ax: CanvasRenderingContext2D, tx: number, ty: number, scale: number, alpha: number) {
-    const pat = ax.createPattern(this.tex, 'repeat')
+  private layer(
+    ax: CanvasRenderingContext2D,
+    tex: HTMLCanvasElement,
+    tx: number,
+    ty: number,
+    scale: number,
+    alpha: number,
+  ) {
+    const pat = ax.createPattern(tex, 'repeat')
     if (!pat) return
     pat.setTransform(new DOMMatrix().translateSelf(tx, ty).scaleSelf(scale, scale))
     ax.globalCompositeOperation = 'source-over'
@@ -155,11 +197,12 @@ export class FogHaze {
     ax.fillStyle = `rgba(${DUST},1)`
     ax.fillRect(0, 0, this.w, this.h)
 
-    // drifting cloud layers — opposite directions + a big slow roll, so the forms
-    // evolve and the texture clearly moves
-    this.layer(ax, t * 0.009, t * 0.006, 1.25, 0.7)
-    this.layer(ax, -t * 0.00675, t * 0.009, 1.8, 0.55)
-    this.layer(ax, t * 0.0036, -t * 0.00285, 2.7, 0.34)
+    // drifting cloud layers — each its own colour, direction, scale and speed
+    for (let i = 0; i < LAYERS.length; i++) {
+      const L = LAYERS[i]
+      const sp = this.speeds[i] ?? 1
+      this.layer(ax, this.tints[i], t * L.tx * sp, t * L.ty * sp, L.scale, L.alpha)
+    }
 
     // keep it only where fog remains (mask already softened by the caller)
     ax.globalCompositeOperation = 'destination-in'

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { FogController, type FogOp } from '../lib/fog.ts'
 import { buildFrost } from '../lib/frost.ts'
 import { FogHaze } from '../lib/fogAnim.ts'
+import { DEFAULT_HAZE, type HazeStyle } from '../lib/fogStyle.ts'
 import { HexGrid } from './HexGrid.tsx'
 import { MapFrame } from './MapFrame.tsx'
 import { PinMarker } from './PinMarker.tsx'
@@ -54,6 +55,7 @@ export function FogView({
   onReady,
   gridOpacity,
   baked = false,
+  hazeStyle = DEFAULT_HAZE,
 }: {
   width: number
   height: number
@@ -68,6 +70,8 @@ export function FogView({
    *  add the animated haze here, not the client-side frost (which would double
    *  up and fade at the edges) */
   baked?: boolean
+  /** per-layer cloud colours + speeds (live-tunable) */
+  hazeStyle?: HazeStyle
 }) {
   // 0–100 line strength → absolute alpha. 25 = the default look (0.45 / 0.05).
   const strength = gridOpacity ?? grid?.opacity ?? 25
@@ -84,6 +88,11 @@ export function FogView({
   onReadyRef.current = onReady
   const bakedRef = useRef(baked)
   bakedRef.current = baked
+
+  // live-tune the drifting cloud colours + speeds
+  useEffect(() => {
+    hazeRef.current.setStyle(hazeStyle.colors, hazeStyle.speeds)
+  }, [hazeStyle])
 
   const fogRef = useRef<FogController>(null as unknown as FogController)
   if (!fogRef.current) {
