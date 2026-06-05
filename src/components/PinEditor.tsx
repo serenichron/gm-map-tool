@@ -13,7 +13,7 @@ import {
 import { PIN_ICONS, PinGlyph } from './PinGlyph.tsx'
 import { PinShape, glyphColor } from './PinMarker.tsx'
 import { ColorPicker } from './ColorPicker.tsx'
-import { resizePortrait } from '../lib/image.ts'
+import { CropDialog } from './CropDialog.tsx'
 
 const SAVED_KEY = 'worldsmith-custom-colors'
 const MAX_SAVED = 15
@@ -62,6 +62,7 @@ export function PinEditor({
   const [titleFocused, setTitleFocused] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
   const portraitRef = useRef<HTMLInputElement>(null)
+  const [cropFile, setCropFile] = useState<File | null>(null)
   const isNpc = pin.kind === 'npc'
   const current = getPinColor(pin)
   const labelBg = pin.labelBg || DEFAULT_PIN_LABEL_BG
@@ -81,15 +82,10 @@ export function PinEditor({
   function toggleShare(field: string) {
     onPatch({ share: { ...(pin.share ?? {}), [field]: !isShared(pin, field) } })
   }
-  async function onPortrait(e: React.ChangeEvent<HTMLInputElement>) {
+  function onPortrait(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     e.target.value = ''
-    if (!f) return
-    try {
-      onPatch({ portrait: await resizePortrait(f) })
-    } catch {
-      /* ignore bad image */
-    }
+    if (f) setCropFile(f) // open the cropper; it returns the final portrait
   }
   // a compact "shown/hidden to players" pill for an NPC field
   const shareBtn = (field: string) => (
@@ -106,6 +102,17 @@ export function PinEditor({
   )
 
   return (
+    <>
+    {cropFile && (
+      <CropDialog
+        file={cropFile}
+        onCancel={() => setCropFile(null)}
+        onDone={(url) => {
+          onPatch({ portrait: url })
+          setCropFile(null)
+        }}
+      />
+    )}
     <div className="fixed inset-x-0 bottom-0 z-30 flex max-h-[82vh] flex-col rounded-t-2xl border-t border-line bg-gradient-to-b from-panel-2 to-[#1c150d] shadow-[0_-12px_30px_rgba(0,0,0,.4)] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[340px] sm:rounded-none sm:border-l sm:border-t-0 sm:shadow-[-12px_0_30px_rgba(0,0,0,.4)]">
       <div className="flex items-center gap-3 border-b border-line px-[18px] py-4">
         {/* live preview over a crop of the real map at the pin's spot, so the
@@ -584,5 +591,6 @@ export function PinEditor({
         </button>
       </div>
     </div>
+    </>
   )
 }
