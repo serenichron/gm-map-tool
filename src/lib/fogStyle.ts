@@ -33,7 +33,7 @@ export const FOG_PRESETS: FogPreset[] = [
   { name: 'The Pale', veilColor: '#2b2f31', colors: ['#565b60', '#3e4347', '#2a2f33'] }, // cold bone-grey
   { name: 'Saltworks', veilColor: '#243130', colors: ['#4a5b59', '#374644', '#27302e'] }, // muted teal salt haze
   { name: 'The Scar', veilColor: '#2a1e22', colors: ['#6b4750', '#4a3340', '#2f2230'] }, // rust-violet
-  { name: 'Quiet Forest', veilColor: '#232a1e', colors: ['#57694a', '#3e4a34', '#2a3224'] }, // mossy green
+  { name: 'Quiet Forest', veilColor: '#242a20', colors: ['#4c5645', '#393f33', '#272d24'] }, // muted mossy green
 ]
 
 const keyFor = (roomId?: string) => `fog-style:${roomId ?? 'local'}`
