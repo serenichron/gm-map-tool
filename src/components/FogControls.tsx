@@ -1,4 +1,4 @@
-import type { FogStyle } from '../lib/fogStyle.ts'
+import { FOG_PRESETS, type FogStyle } from '../lib/fogStyle.ts'
 
 /**
  * GM-only tuning for the fog look: the veil colour (baked into the published
@@ -28,6 +28,37 @@ export function FogControls({
   }
   return (
     <div className="flex flex-col gap-2.5">
+      {/* presets: veil + 3 cloud colours (speeds kept as-is) */}
+      <div>
+        <span className="mb-1 block font-ui text-[10px] uppercase tracking-[0.08em] text-bone-dim">Presets</span>
+        <div className="flex flex-wrap gap-1.5">
+          {FOG_PRESETS.map((p) => {
+            const active =
+              p.veilColor.toLowerCase() === style.veilColor.toLowerCase() &&
+              p.colors.every((c, i) => c.toLowerCase() === style.clouds.colors[i].toLowerCase())
+            return (
+              <button
+                key={p.name}
+                title={p.name}
+                onClick={() =>
+                  onChange({ veilColor: p.veilColor, clouds: { ...style.clouds, colors: p.colors } })
+                }
+                className={`overflow-hidden rounded-[6px] border ${active ? 'border-ochre' : 'border-line'}`}
+              >
+                <span className="flex h-5 w-9">
+                  {p.colors.map((c, i) => (
+                    <span key={i} className="flex-1" style={{ background: c }} />
+                  ))}
+                </span>
+                <span className="block h-1.5 w-9" style={{ background: p.veilColor }} />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <hr className="border-line" />
+
       {/* veil colour (baked → reaches players on publish) */}
       <div className="flex items-center gap-2">
         <input

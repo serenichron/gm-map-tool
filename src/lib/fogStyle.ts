@@ -26,6 +26,16 @@ export const DEFAULT_VEIL_COLOR = '#262018' // the warm dust wash over hidden gr
 
 export const DEFAULT_FOG_STYLE: FogStyle = { veilColor: DEFAULT_VEIL_COLOR, clouds: DEFAULT_HAZE }
 
+/** Curated veil + 3-cloud palettes the GM can pick from (speeds left untouched). */
+export type FogPreset = { name: string; veilColor: string; colors: [string, string, string] }
+export const FOG_PRESETS: FogPreset[] = [
+  { name: 'Ash Reach', veilColor: '#262018', colors: ['#5b4a35', '#46443a', '#352c22'] }, // warm desert dust (default)
+  { name: 'The Pale', veilColor: '#2b2f31', colors: ['#6e747a', '#50575b', '#383e42'] }, // cold bone-grey
+  { name: 'Saltworks', veilColor: '#213031', colors: ['#5e807c', '#3f5b59', '#29403e'] }, // teal salt haze
+  { name: 'The Scar', veilColor: '#2a1e22', colors: ['#6b4750', '#4a3340', '#2f2230'] }, // rust-violet
+  { name: 'Quiet Forest', veilColor: '#232a1e', colors: ['#57694a', '#3e4a34', '#2a3224'] }, // mossy green
+]
+
 const keyFor = (roomId?: string) => `fog-style:${roomId ?? 'local'}`
 
 export function loadFogStyle(roomId?: string): FogStyle {
