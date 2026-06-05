@@ -24,6 +24,7 @@ type Pub = {
   src: string
   fogOps: Snapshot['fogOps']
   grid: Snapshot['grid']
+  cloud: Snapshot['cloud']
 }
 
 /**
@@ -68,7 +69,7 @@ export function PlayerScreen() {
         if (lastBlobUrl.current) URL.revokeObjectURL(lastBlobUrl.current)
         lastBlobUrl.current = s.imageUrl.startsWith('blob:') ? s.imageUrl : null
         setPins(s.pins)
-        setPub({ version: s.version, width: s.width, height: s.height, src: s.imageUrl, fogOps: s.fogOps, grid: s.grid })
+        setPub({ version: s.version, width: s.width, height: s.height, src: s.imageUrl, fogOps: s.fogOps, grid: s.grid, cloud: s.cloud })
       }
       img.onload = finish
       img.onerror = () => setError('Could not load the map image.')
@@ -206,6 +207,7 @@ export function PlayerScreen() {
               grid={pub.grid}
               pins={pins}
               baked
+              hazeStyle={pub.cloud}
               onReady={() => setFogReady(true)}
               gridOpacity={useGmGrid ? undefined : playerGridOpacity}
             />

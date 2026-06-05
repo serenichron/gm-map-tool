@@ -28,11 +28,13 @@ create table if not exists public.published_state (
   fog         jsonb not null default '[]',   -- ordered fog ops
   pins        jsonb not null default '[]',   -- public pins (no GM notes)
   grid        jsonb,                          -- optional hex-tile overlay { enabled, size }
+  style       jsonb,                          -- fog cloud style { colors, speeds }
   updated_at  timestamptz not null default now()
 );
 
--- If the table already existed before the grid feature, add the column:
+-- If the table already existed before these features, add the columns:
 alter table public.published_state add column if not exists grid jsonb;
+alter table public.published_state add column if not exists style jsonb;
 
 -- ── gm_working_state ──────────────────────────────────────────────────────
 -- The GM's private, unpublished draft, synced across the GM's own devices.

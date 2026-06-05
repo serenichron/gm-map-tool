@@ -705,6 +705,7 @@ function GMWorkspace() {
         angle: gridAngleRef.current,
         opacity: gridOpacityRef.current,
       },
+        cloud: fogStyle.clouds,
       })
       setDirty(false)
       // clear orphaned images: keep only the just-published veil + working image

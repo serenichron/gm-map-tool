@@ -11,6 +11,7 @@
  */
 import type { FogOp } from './fog.ts'
 import { getPinColor, type Pin } from './pins.ts'
+import { DEFAULT_HAZE, type HazeStyle } from './fogStyle.ts'
 import type { GridSettings } from './types.ts'
 import { idbGet, idbSet } from './storage.ts'
 import { supabase } from './supabase.ts'
@@ -56,6 +57,7 @@ export type PublishInput = {
   fogOps: FogOp[]
   pins: PublicPin[]
   grid: GridSettings | null
+  cloud: HazeStyle
 }
 
 /** What a player receives. imageUrl is directly usable by <img>/canvas. */
@@ -67,6 +69,7 @@ export type Snapshot = {
   fogOps: FogOp[]
   pins: PublicPin[]
   grid: GridSettings | null
+  cloud: HazeStyle
 }
 
 export interface Backend {
@@ -98,7 +101,7 @@ export function createLocalBackend(): Backend {
       idbGet<Blob>(LOCAL_IMAGE),
     ])
     if (!state || !blob) return undefined
-    return { ...state, imageUrl: URL.createObjectURL(blob) }
+    return { ...state, cloud: state.cloud ?? DEFAULT_HAZE, imageUrl: URL.createObjectURL(blob) }
   }
 
   return {
@@ -107,8 +110,8 @@ export function createLocalBackend(): Backend {
       return LOCAL_IMAGE
     },
     async publish(input) {
-      const { version, width, height, fogOps, pins, grid } = input
-      await idbSet(LOCAL_STATE, { version, width, height, fogOps, pins, grid } satisfies LocalState)
+      const { version, width, height, fogOps, pins, grid, cloud } = input
+      await idbSet(LOCAL_STATE, { version, width, height, fogOps, pins, grid, cloud } satisfies LocalState)
       bc?.postMessage({ type: 'published', version })
     },
     requestLatest: readSnapshot,
@@ -152,6 +155,7 @@ export function createSupabaseBackend(roomId: string): Backend {
     fog: FogOp[]
     pins: PublicPin[]
     grid: GridSettings | null
+    style?: HazeStyle | null
   }): Snapshot => ({
     version: Number(row.version),
     width: row.width,
@@ -162,6 +166,7 @@ export function createSupabaseBackend(roomId: string): Backend {
     fogOps: row.fog ?? [],
     pins: row.pins ?? [],
     grid: row.grid ?? null,
+    cloud: row.style ?? DEFAULT_HAZE,
   })
 
   return {
@@ -185,10 +190,13 @@ export function createSupabaseBackend(roomId: string): Backend {
         pins: input.pins,
         updated_at: new Date().toISOString(),
       }
-      let res = await sb.from('published_state').upsert({ ...base, grid: input.grid })
-      // tolerate the grid column not existing yet (publish still works without it)
-      if (res.error && /grid/i.test(res.error.message)) {
-        res = await sb.from('published_state').upsert(base)
+      let res = await sb.from('published_state').upsert({ ...base, grid: input.grid, style: input.cloud })
+      // tolerate optional columns (grid/style) not existing yet
+      if (res.error && /style|grid/i.test(res.error.message)) {
+        res = await sb.from('published_state').upsert({ ...base, grid: input.grid })
+        if (res.error && /grid/i.test(res.error.message)) {
+          res = await sb.from('published_state').upsert(base)
+        }
       }
       if (res.error) throw res.error
     },
