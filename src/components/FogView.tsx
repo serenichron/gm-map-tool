@@ -120,12 +120,37 @@ export function FogView({
 
   const depthRef = useRef<HTMLCanvasElement>(null)
   const frostRef = useRef<HTMLCanvasElement>(null)
+  const veilTintRef = useRef<HTMLCanvasElement>(null)
   const fogAnimRef = useRef<HTMLCanvasElement>(null)
   const hazeRef = useRef<FogHaze>(null as unknown as FogHaze)
   if (!hazeRef.current) hazeRef.current = new FogHaze()
   const mapImgRef = useRef<HTMLImageElement | null>(null)
   const stateRef = useRef({ width, height, fogOps, grid })
   stateRef.current = { width, height, fogOps, grid }
+
+  // cheap, standalone veil tint over the (untinted) frost — only this redraws as
+  // the GM drags the veil colour, so it stays smooth. Baked player view: no tint.
+  const renderVeilTint = useCallback(() => {
+    const cv = veilTintRef.current
+    if (!cv) return
+    const { width: W, height: H } = stateRef.current
+    const c = cv.getContext('2d')
+    if (!c) return
+    if (cv.width !== W || cv.height !== H) {
+      cv.width = W
+      cv.height = H
+    }
+    c.setTransform(1, 0, 0, 1, 0, 0)
+    c.clearRect(0, 0, W, H)
+    if (bakedRef.current || !W || !H) return
+    c.globalAlpha = 0.45
+    c.fillStyle = veilRef.current
+    c.fillRect(0, 0, W, H)
+    c.globalAlpha = 1
+    c.globalCompositeOperation = 'destination-in'
+    c.drawImage(coverMask.current, 0, 0, W, H)
+    c.globalCompositeOperation = 'source-over'
+  }, [])
 
   const renderFog = useCallback(() => {
     const { width: W, height: H, fogOps: ops } = stateRef.current
@@ -182,16 +207,9 @@ export function FogView({
       if (frost) {
         fitCanvas(frost)
         buildFrost(frost, cover, img, W, H)
-        // tint the veil to the GM-chosen colour (mirrors the bake's dust wash)
-        const fc = frost.getContext('2d')!
-        fc.globalCompositeOperation = 'source-atop'
-        fc.globalAlpha = 0.45
-        fc.fillStyle = veilRef.current
-        fc.fillRect(0, 0, W, H)
-        fc.globalAlpha = 1
-        fc.globalCompositeOperation = 'source-over'
       }
     }
+    renderVeilTint()
 
     const anim = fogAnimRef.current
     if (anim) {
@@ -223,10 +241,15 @@ export function FogView({
     if (img.complete && img.naturalWidth > 0) done()
   }, [mapSrc, renderFog])
 
-  // redraw when inputs change (incl. the preview veil tint)
+  // redraw when inputs change
   useLayoutEffect(() => {
     renderFog()
-  }, [width, height, fogOps, grid, veilColor, renderFog])
+  }, [width, height, fogOps, grid, renderFog])
+
+  // veil colour is a cheap separate layer — only this redraws as the GM drags
+  useEffect(() => {
+    renderVeilTint()
+  }, [veilColor, renderVeilTint])
 
   // redraw on return-to-view (mobile discards canvases while backgrounded).
   // visibilitychange only fires on an actual change (not initial load); pageshow
@@ -318,6 +341,7 @@ export function FogView({
       )}
       <canvas ref={depthRef} className="pointer-events-none absolute left-0 top-0" style={{ width, height }} />
       <canvas ref={frostRef} className="pointer-events-none absolute left-0 top-0" style={{ width, height }} />
+      <canvas ref={veilTintRef} className="pointer-events-none absolute left-0 top-0" style={{ width, height }} />
       <canvas ref={fogAnimRef} className="pointer-events-none absolute left-0 top-0" style={{ width, height }} />
       {/* faint pass over the fog: hex structure shows through without revealing terrain */}
       {grid?.enabled && (
