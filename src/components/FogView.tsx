@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { FogController, type FogOp } from '../lib/fog.ts'
 import { buildFrost } from '../lib/frost.ts'
 import { FogHaze } from '../lib/fogAnim.ts'
-import { DEFAULT_HAZE, type HazeStyle } from '../lib/fogStyle.ts'
+import { DEFAULT_HAZE, DEFAULT_VEIL_COLOR, type HazeStyle } from '../lib/fogStyle.ts'
 import { HexGrid } from './HexGrid.tsx'
 import { MapFrame } from './MapFrame.tsx'
 import { PinMarker } from './PinMarker.tsx'
@@ -56,6 +56,8 @@ export function FogView({
   gridOpacity,
   baked = false,
   hazeStyle = DEFAULT_HAZE,
+  veilColor = DEFAULT_VEIL_COLOR,
+  hideClouds = false,
 }: {
   width: number
   height: number
@@ -72,6 +74,10 @@ export function FogView({
   baked?: boolean
   /** per-layer cloud colours + speeds (live-tunable) */
   hazeStyle?: HazeStyle
+  /** veil tint for the GM preview (the baked image already carries it for players) */
+  veilColor?: string
+  /** GM-only: hide the clouds so the veil is visible (never affects players) */
+  hideClouds?: boolean
 }) {
   // 0–100 line strength → absolute alpha. 25 = the default look (0.45 / 0.05).
   const strength = gridOpacity ?? grid?.opacity ?? 25
@@ -93,6 +99,13 @@ export function FogView({
   useEffect(() => {
     hazeRef.current.setStyle(hazeStyle.colors, hazeStyle.speeds)
   }, [hazeStyle])
+  // GM-only: hide clouds to inspect the veil
+  useEffect(() => {
+    hazeRef.current.setHidden(hideClouds)
+  }, [hideClouds])
+  // veil tint changes need a re-render of the (preview) frost
+  const veilRef = useRef(veilColor)
+  veilRef.current = veilColor
 
   const fogRef = useRef<FogController>(null as unknown as FogController)
   if (!fogRef.current) {
@@ -169,6 +182,14 @@ export function FogView({
       if (frost) {
         fitCanvas(frost)
         buildFrost(frost, cover, img, W, H)
+        // tint the veil to the GM-chosen colour (mirrors the bake's dust wash)
+        const fc = frost.getContext('2d')!
+        fc.globalCompositeOperation = 'source-atop'
+        fc.globalAlpha = 0.45
+        fc.fillStyle = veilRef.current
+        fc.fillRect(0, 0, W, H)
+        fc.globalAlpha = 1
+        fc.globalCompositeOperation = 'source-over'
       }
     }
 
@@ -202,10 +223,10 @@ export function FogView({
     if (img.complete && img.naturalWidth > 0) done()
   }, [mapSrc, renderFog])
 
-  // redraw when inputs change
+  // redraw when inputs change (incl. the preview veil tint)
   useLayoutEffect(() => {
     renderFog()
-  }, [width, height, fogOps, grid, renderFog])
+  }, [width, height, fogOps, grid, veilColor, renderFog])
 
   // redraw on return-to-view (mobile discards canvases while backgrounded).
   // visibilitychange only fires on an actual change (not initial load); pageshow

@@ -17,7 +17,7 @@ import { newPinId, DEFAULT_PIN_COLOR, computeLabelSides, type Pin } from '../lib
 import { swallowNextClick } from '../lib/tap.ts'
 import { bakeVeiledMap } from '../lib/bake.ts'
 import { FogControls } from '../components/FogControls.tsx'
-import { loadHazeStyle, saveHazeStyle, type HazeStyle } from '../lib/fogStyle.ts'
+import { loadFogStyle, saveFogStyle, type FogStyle } from '../lib/fogStyle.ts'
 import { idbGet, idbSet, idbDel, imgKey, workKey, type WorkingState } from '../lib/storage.ts'
 import {
   createLocalBackend,
@@ -97,7 +97,8 @@ function GMWorkspace() {
   const [preview, setPreview] = useState(false)
   const [previewArmed, setPreviewArmed] = useState(false) // mount the heavy preview a frame late
   const [previewReady, setPreviewReady] = useState(false) // preview fog has painted
-  const [hazeStyle, setHazeStyle] = useState<HazeStyle>(loadHazeStyle)
+  const [fogStyle, setFogStyle] = useState<FogStyle>(() => loadFogStyle())
+  const [hideClouds, setHideClouds] = useState(false) // GM preview only — inspect the veil
   const [previewData, setPreviewData] = useState<{
     src: string
     fogOps: ReturnType<FogController['getActiveOps']>
@@ -689,7 +690,7 @@ function GMWorkspace() {
       const fogOps = fogRef.current.getActiveOps()
       // bake a player-safe image (revealed crisp, hidden blurred/dimmed) so the
       // raw map never leaves the GM; overwrite a stable object each publish
-      const veiled = await bakeVeiledMap(blob, fogOps, m.width, m.height)
+      const veiled = await bakeVeiledMap(blob, fogOps, m.width, m.height, fogStyle.veilColor)
       const imageRef = await backend.uploadMap(veiled, 'published')
       await backend.publish({
         version: Date.now(),
@@ -883,6 +884,11 @@ function GMWorkspace() {
       cancelAnimationFrame(raf2)
     }
   }, [preview])
+
+  // each room remembers its own fog look
+  useEffect(() => {
+    setFogStyle(loadFogStyle(activeRoomId ?? undefined))
+  }, [activeRoomId])
 
   const pickFile = () => fileRef.current?.click()
   const selectedPin = pins.find((p) => p.id === selectedId) ?? null
@@ -1288,7 +1294,9 @@ function GMWorkspace() {
                   fogOps={previewData.fogOps}
                   grid={previewData.grid}
                   pins={previewData.pins}
-                  hazeStyle={hazeStyle}
+                  hazeStyle={fogStyle.clouds}
+                  veilColor={fogStyle.veilColor}
+                  hideClouds={hideClouds}
                   onReady={() => setPreviewReady(true)}
                 />
               )}
@@ -1307,16 +1315,18 @@ function GMWorkspace() {
               </div>
             )}
             {preview && previewReady && (
-              <div className="absolute bottom-3 left-3 z-30 w-[270px] rounded-xl border border-line bg-gradient-to-b from-panel-2 to-panel p-3 shadow-2xl">
+              <div className="absolute bottom-3 left-3 z-30 w-[280px] rounded-xl border border-line bg-gradient-to-b from-panel-2 to-panel p-3 shadow-2xl">
                 <span className="mb-2 block font-ui text-[10px] uppercase tracking-[0.08em] text-ochre">
-                  Fog clouds
+                  Fog look
                 </span>
                 <FogControls
-                  style={hazeStyle}
+                  style={fogStyle}
                   onChange={(s) => {
-                    setHazeStyle(s)
-                    saveHazeStyle(s)
+                    setFogStyle(s)
+                    saveFogStyle(activeRoomId ?? undefined, s)
                   }}
+                  hideClouds={hideClouds}
+                  onHideClouds={setHideClouds}
                 />
               </div>
             )}

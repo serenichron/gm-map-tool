@@ -119,6 +119,17 @@ export class FogHaze {
    *  (which the OS may have wiped) can be repainted reliably. */
   onResume: (() => void) | null = null
 
+  private hidden = false
+
+  /** GM-only: hide the drifting clouds so the veil underneath is visible */
+  setHidden(b: boolean) {
+    this.hidden = b
+    if (b && this.ax) {
+      this.ax.setTransform(1, 0, 0, 1, 0, 0)
+      this.ax.clearRect(0, 0, this.w, this.h)
+    }
+  }
+
   /** set per-layer colours + speed multipliers (re-tints only changed colours) */
   setStyle(colors: [string, string, string], speeds: [number, number, number]) {
     for (let i = 0; i < 3; i++) {
@@ -185,7 +196,7 @@ export class FogHaze {
   private draw(t: number) {
     const ax = this.ax
     const mask = this.mask
-    if (!ax || !mask || !this.w) return
+    if (this.hidden || !ax || !mask || !this.w) return
     ax.setTransform(1, 0, 0, 1, 0, 0)
     ax.globalCompositeOperation = 'source-over'
     ax.globalAlpha = 1

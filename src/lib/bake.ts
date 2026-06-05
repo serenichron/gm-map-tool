@@ -86,7 +86,13 @@ function blurClamped(
   dst.drawImage(blurred, p, p, w, h, 0, 0, w, h)
 }
 
-export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h: number): Promise<Blob> {
+export async function bakeVeiledMap(
+  mapBlob: Blob,
+  fogOps: FogOp[],
+  w: number,
+  h: number,
+  veilColor = '#262018',
+): Promise<Blob> {
   // load from the local blob (object URL) so the canvas isn't cross-origin tainted
   const url = URL.createObjectURL(mapBlob)
   try {
@@ -135,10 +141,12 @@ export async function bakeVeiledMap(mapBlob: Blob, fogOps: FogOp[], w: number, h
     hctx.imageSmoothingEnabled = true
     hctx.imageSmoothingQuality = 'high'
     hctx.drawImage(tiny, 0, 0, tw, th, 0, 0, w, h)
-    // a flat warm dust wash to settle it into the fog palette
+    // a flat dust wash (GM-chosen veil colour) to settle it into the fog palette
     hctx.globalCompositeOperation = 'source-atop'
-    hctx.fillStyle = 'rgba(38,32,24,0.45)'
+    hctx.globalAlpha = 0.45
+    hctx.fillStyle = veilColor
     hctx.fillRect(0, 0, w, h)
+    hctx.globalAlpha = 1
     hctx.globalCompositeOperation = 'destination-in'
     hctx.drawImage(mask, 0, 0, w, h)
     hctx.globalCompositeOperation = 'source-over'
